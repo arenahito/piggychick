@@ -40,6 +40,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0` in a flex row, and add `role="img"` with `aria-label` for emoji indicators.
 - Handle `.git` as a directory, file, or symlink and resolve `gitdir:` paths relative to the `.git` file location.
 - Return `null` on git metadata errors or detached HEAD to keep listing APIs stable.
+- Wrap localStorage access in try/catch and keep UI state toggles functional when storage is unavailable.
 
 ## Notes for changes
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
