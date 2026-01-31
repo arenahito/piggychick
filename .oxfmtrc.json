@@ -1,6 +1,3 @@
 {
-  "ignorePatterns": [
-    "**/*.md",
-    "**/*.mdx"
-  ]
+  "ignorePatterns": ["**/*.md", "**/*.mdx"]
 }
