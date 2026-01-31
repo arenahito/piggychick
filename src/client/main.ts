@@ -21,12 +21,32 @@ const state: {
   prds: PrdSummary[];
   rootMeta: PrdListMeta | null;
   selection: Selection | null;
+  sidebarCollapsed: boolean;
   lastPlan: { prdId: string; planMarkdown: string; planJsonText: string } | null;
 } = {
   prds: [],
   rootMeta: null,
   selection: null,
+  sidebarCollapsed: false,
   lastPlan: null
+};
+
+const sidebarCollapsedKey = "pgch.sidebarCollapsed";
+
+const readSidebarCollapsed = () => {
+  try {
+    return localStorage.getItem(sidebarCollapsedKey) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const writeSidebarCollapsed = (value: boolean) => {
+  try {
+    localStorage.setItem(sidebarCollapsedKey, value ? "true" : "false");
+  } catch {
+    return;
+  }
 };
 
 const parseHash = (): (Selection & { implicitDoc: boolean }) | null => {
@@ -180,9 +200,21 @@ layout.mobileSelect.addEventListener("change", (event) => {
 });
 
 const refreshSidebar = () => {
-  renderSidebar(layout.sidebarContent, state.rootMeta, state.prds, state.selection, (prdId, doc) => {
-    setHash(prdId, doc);
-  });
+  renderSidebar(
+    layout.sidebarContent,
+    state.rootMeta,
+    state.prds,
+    state.selection,
+    state.sidebarCollapsed,
+    (prdId, doc) => {
+      setHash(prdId, doc);
+    },
+    () => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+      writeSidebarCollapsed(state.sidebarCollapsed);
+      refreshSidebar();
+    }
+  );
   updateMobileSelect();
 };
 
@@ -217,6 +249,7 @@ const loadSelection = async () => {
 };
 
 const bootstrap = async () => {
+  state.sidebarCollapsed = readSidebarCollapsed();
   try {
     const payload = await fetchPrds();
     state.prds = payload.prds;

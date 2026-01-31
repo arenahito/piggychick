@@ -15,21 +15,34 @@ export const renderSidebar = (
   rootMeta: PrdListMeta | null,
   prds: PrdSummary[],
   selection: Selection | null,
-  onSelect: SelectHandler
+  isCollapsed: boolean,
+  onSelect: SelectHandler,
+  onToggleCollapse: () => void
 ) => {
   container.innerHTML = "";
-
+  const shouldCollapse = isCollapsed && rootMeta !== null;
   if (rootMeta) {
-    const rootHeader = document.createElement("div");
-    rootHeader.className = "sidebar-root";
     const headerText = rootMeta.rootLabel
       ? (rootMeta.gitBranch ? `${rootMeta.rootLabel} @${rootMeta.gitBranch}` : rootMeta.rootLabel)
       : (rootMeta.gitBranch ? `@${rootMeta.gitBranch}` : "");
     const trimmedHeader = headerText.trim();
-    if (trimmedHeader) {
-      rootHeader.textContent = headerText;
+    const displayHeader = trimmedHeader || "PRDs";
+    if (displayHeader) {
+      const rootHeader = document.createElement("button");
+      rootHeader.type = "button";
+      rootHeader.className = "sidebar-root";
+      rootHeader.textContent = displayHeader;
+      rootHeader.setAttribute("aria-expanded", String(!shouldCollapse));
+      const toggleLabel = shouldCollapse ? "Show PRDs" : "Hide PRDs";
+      rootHeader.setAttribute("title", toggleLabel);
+      rootHeader.setAttribute("aria-label", `${displayHeader} ${toggleLabel}`);
+      rootHeader.addEventListener("click", () => onToggleCollapse());
       container.append(rootHeader);
     }
+  }
+
+  if (shouldCollapse) {
+    return;
   }
 
   for (const prd of prds) {
