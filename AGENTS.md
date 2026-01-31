@@ -35,6 +35,9 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Resolve tasks roots via `resolve(process.cwd(), value)` so relative and absolute inputs behave consistently.
 - Use `cross-env` in scripts when setting `PGCH_TASKS_ROOT` to keep Windows shells working.
 - Document `PGCH_TASKS_ROOT` with both POSIX and PowerShell examples to prevent shell-specific confusion.
+- Reuse TOCTOU-safe file helpers (e.g., `readTextFileWithin`) when reading `plan.json` for PRD listings; on failure, fall back to `not_started` instead of breaking the list.
+- Normalize malformed task entries (non-objects or missing `passes`) to keep progress computation resilient.
+- Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0` in a flex row, and add `role="img"` with `aria-label` for emoji indicators.
 
 ## Notes for changes
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
