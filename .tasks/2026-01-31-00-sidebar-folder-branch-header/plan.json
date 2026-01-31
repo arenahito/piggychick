@@ -9,7 +9,7 @@
     {
       "id": "a797cff9-8ce4-49f2-8d03-4a034459c452",
       "title": "F1: Update client data model and mobile select labels",
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "95b94d92-e278-421a-8c75-9ae6a670c6fa"
       ]

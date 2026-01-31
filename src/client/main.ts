@@ -1,4 +1,4 @@
-import { fetchMarkdown, fetchPlan, fetchPrds, type PrdSummary } from "./api";
+import { fetchMarkdown, fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
 import { createLayout } from "./components/layout";
 import { renderSidebar, type DocKind, type Selection } from "./components/sidebar";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
@@ -19,10 +19,12 @@ setMermaidTheme("dark");
 
 const state: {
   prds: PrdSummary[];
+  rootMeta: PrdListMeta | null;
   selection: Selection | null;
   lastPlan: { prdId: string; planMarkdown: string; planJsonText: string } | null;
 } = {
   prds: [],
+  rootMeta: null,
   selection: null,
   lastPlan: null
 };
@@ -131,6 +133,11 @@ const updateMobileSelect = () => {
     select.append(option);
     return;
   }
+  const rootLabel = state.rootMeta?.rootLabel ?? "";
+  const gitBranch = state.rootMeta?.gitBranch ?? null;
+  const rootPrefix = rootLabel
+    ? (gitBranch ? `${rootLabel} @${gitBranch}` : rootLabel)
+    : (gitBranch ? `@${gitBranch}` : "");
   for (const prd of state.prds) {
     const docs: DocKind[] = ["plan", ...prd.docs];
     const progress = normalizeProgress(prd.progress);
@@ -139,7 +146,9 @@ const updateMobileSelect = () => {
     for (const doc of docs) {
       const option = document.createElement("option");
       option.value = `${encodeURIComponent(prd.id)}|${encodeURIComponent(doc)}`;
-      option.textContent = `${prd.label} ${progressEmoji} / ${doc}`;
+      option.textContent = rootPrefix
+        ? `${rootPrefix} / ${prd.label} ${progressEmoji} / ${doc}`
+        : `${prd.label} ${progressEmoji} / ${doc}`;
       if (state.selection && state.selection.prdId === prd.id && state.selection.doc === doc) {
         option.selected = true;
       }
@@ -209,7 +218,9 @@ const loadSelection = async () => {
 
 const bootstrap = async () => {
   try {
-    state.prds = await fetchPrds();
+    const payload = await fetchPrds();
+    state.prds = payload.prds;
+    state.rootMeta = payload.meta;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load PRDs";
     renderError(message);
