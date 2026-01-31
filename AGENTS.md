@@ -31,6 +31,10 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Validate packaged assets at startup and include the effective path in error messages.
 - Standardize server env vars to `PGCH_*` and remove legacy names from code and UI.
 - Fix `dist` resolution to the packaged `dist/` and avoid override env vars or wrapper injection.
+- Centralize tasks root resolution in the shared helper and keep the fallback untouched when `PGCH_TASKS_ROOT` is unset.
+- Resolve tasks roots via `resolve(process.cwd(), value)` so relative and absolute inputs behave consistently.
+- Use `cross-env` in scripts when setting `PGCH_TASKS_ROOT` to keep Windows shells working.
+- Document `PGCH_TASKS_ROOT` with both POSIX and PowerShell examples to prevent shell-specific confusion.
 
 ## Notes for changes
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
