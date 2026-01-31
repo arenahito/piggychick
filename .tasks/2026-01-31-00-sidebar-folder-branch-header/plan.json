@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    {
+      "id": "95b94d92-e278-421a-8c75-9ae6a670c6fa",
+      "title": "B1: Add root/git metadata to PRD list API",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "a797cff9-8ce4-49f2-8d03-4a034459c452",
+      "title": "F1: Update client data model and mobile select labels",
+      "passes": false,
+      "dependsOn": [
+        "95b94d92-e278-421a-8c75-9ae6a670c6fa"
+      ]
+    },
+    {
+      "id": "df95da34-6c88-4570-8b41-1ffa48a7bd91",
+      "title": "F2: Render root header in sidebar with ellipsis",
+      "passes": false,
+      "dependsOn": [
+        "a797cff9-8ce4-49f2-8d03-4a034459c452"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
-import { lstat, open, readdir, realpath } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { lstat, open, readFile, readdir, realpath } from "node:fs/promises";
+import { basename, dirname, join, resolve, sep } from "node:path";
 
 export type PrdSummary = {
   id: string;
@@ -10,6 +10,16 @@ export type PrdSummary = {
 };
 
 export type PrdProgress = "not_started" | "in_progress" | "done";
+
+export type PrdListMeta = {
+  rootLabel: string;
+  gitBranch: string | null;
+};
+
+export type PrdListPayload = {
+  meta: PrdListMeta;
+  prds: PrdSummary[];
+};
 
 export class TasksError extends Error {
   code: string;
@@ -48,6 +58,63 @@ const reservedDeviceNames = new Set([
   "lpt8",
   "lpt9"
 ]);
+
+const resolveRootLabel = (projectRoot: string) => {
+  let rootLabel = basename(projectRoot);
+  if (!rootLabel) {
+    const trimmed = projectRoot.replace(/[\\/]+$/, "");
+    rootLabel = basename(trimmed);
+  }
+  if (!rootLabel) {
+    rootLabel = "root";
+  }
+  return rootLabel;
+};
+
+const resolveGitDir = async (projectRoot: string) => {
+  const dotGit = resolve(projectRoot, ".git");
+  const initialStats = await lstat(dotGit).catch(() => null);
+  if (!initialStats) return null;
+
+  let targetPath = dotGit;
+  let stats = initialStats;
+  if (stats.isSymbolicLink()) {
+    const resolved = await realpath(dotGit).catch(() => null);
+    if (!resolved) return null;
+    targetPath = resolved;
+    stats = await lstat(resolved).catch(() => null);
+    if (!stats) return null;
+  }
+
+  if (stats.isDirectory()) return targetPath;
+  if (!stats.isFile()) return null;
+
+  const contents = await readFile(targetPath, "utf8").catch(() => null);
+  if (!contents) return null;
+  const firstLine = contents.split(/\r?\n/)[0]?.trim();
+  if (!firstLine) return null;
+  const match = firstLine.match(/^gitdir:\s*(.+)$/i);
+  if (!match) return null;
+  const gitdirValue = match[1].trim();
+  if (!gitdirValue) return null;
+  return resolve(dirname(targetPath), gitdirValue);
+};
+
+const resolveGitBranch = async (projectRoot: string) => {
+  const gitDir = await resolveGitDir(projectRoot);
+  if (!gitDir) return null;
+  const headPath = resolve(gitDir, "HEAD");
+  const headText = await readFile(headPath, "utf8").catch(() => null);
+  if (!headText) return null;
+  const line = headText.trim();
+  const match = line.match(/^ref:\s*(.+)$/i);
+  if (!match) return null;
+  const ref = match[1].trim();
+  const prefix = "refs/heads/";
+  if (!ref.startsWith(prefix)) return null;
+  const branch = ref.slice(prefix.length).trim();
+  return branch || null;
+};
 
 const isSafePrd = (prd: string) => {
   if (prd.length === 0 || prd === "." || prd === "..") return false;
@@ -211,8 +278,11 @@ const resolvePrdDir = async (root: string, prd: string) => {
   return prdReal;
 };
 
-export const listPrds = async (root: string): Promise<PrdSummary[]> => {
+export const listPrds = async (root: string): Promise<PrdListPayload> => {
   const rootReal = await realpath(root).catch(() => resolve(root));
+  const projectRoot = dirname(rootReal);
+  const rootLabel = resolveRootLabel(projectRoot);
+  const gitBranch = await resolveGitBranch(projectRoot).catch(() => null);
   const entries = await readDirEntries(rootReal);
   const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
 
@@ -271,7 +341,10 @@ export const listPrds = async (root: string): Promise<PrdSummary[]> => {
     });
   }
 
-  return results.sort((a, b) => a.label.localeCompare(b.label));
+  return {
+    meta: { rootLabel, gitBranch },
+    prds: results.sort((a, b) => a.label.localeCompare(b.label))
+  };
 };
 
 export const readPlan = async (root: string, prd: string) => {
