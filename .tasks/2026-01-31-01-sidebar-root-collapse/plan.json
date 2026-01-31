@@ -9,7 +9,7 @@
     {
       "id": "d1966ec9-bb18-44c3-8676-b410b9283eba",
       "title": "F2: Emphasize root header styling and focus states",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["9ffba057-bfd1-412a-8c20-220623bf9c04"]
     }
   ]

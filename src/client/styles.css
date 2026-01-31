@@ -5,6 +5,7 @@
   --panel-soft: #1e2430;
   --text: #e6edf3;
   --muted: #9da7b3;
+  --muted-strong: #b9c3cf;
   --accent: #7cc4ff;
   --border: #242c3a;
   --md-h1: #d16d8a;
@@ -96,20 +97,39 @@ select {
 }
 
 .sidebar-root {
-  font-size: 13px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-root:hover,
+.sidebar-root:focus-visible {
+  background: #222a38;
+  border-color: rgba(124, 196, 255, 0.45);
+}
+
+.sidebar-root:focus-visible {
+  outline: 2px solid rgba(124, 196, 255, 0.6);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px rgba(124, 196, 255, 0.35);
 }
 
 .sidebar-group-title {
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--muted-strong);
   flex: 1;
   min-width: 0;
   display: -webkit-box;
@@ -146,7 +166,7 @@ select {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
-  padding: 4px 12px;
+  padding: 6px 12px;
   cursor: pointer;
 }
 
@@ -159,6 +179,11 @@ select {
 .sidebar-item.is-active {
   background: rgba(124, 196, 255, 0.12);
   border-color: rgba(124, 196, 255, 0.4);
+}
+
+.sidebar-item:focus-visible {
+  outline: 2px solid rgba(124, 196, 255, 0.6);
+  outline-offset: 2px;
 }
 
 .app-content {
@@ -188,7 +213,7 @@ select {
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--muted-strong);
   margin-bottom: calc(var(--space) * 2);
 }
 
