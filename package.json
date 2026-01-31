@@ -1,0 +1,27 @@
+{
+  "name": "piggychick",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"bun --watch src/server/index.ts ./example/.tasks\" \"bun run dev:client\"",
+    "dev:client": "mkdir -p dist dist/assets && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css && bun build --watch src/client/main.ts --outdir dist/assets --target browser",
+    "start": "bun src/server/index.ts ./.tasks",
+    "build": "bun run build:client",
+    "build:client": "mkdir -p dist dist/assets && bun build src/client/main.ts --outdir dist/assets --target browser && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css",
+    "lint": "oxlint . --ignore-path .oxlintignore"
+  },
+  "dependencies": {
+    "d3-transition": "^3.0.1",
+    "dompurify": "^3.3.1",
+    "github-markdown-css": "^5.8.1",
+    "markdown-it": "^14.1.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "mermaid": "^11.12.2",
+    "open": "^11.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "oxlint": "^1.42.0",
+    "typescript": "^5.9.3"
+  }
+}

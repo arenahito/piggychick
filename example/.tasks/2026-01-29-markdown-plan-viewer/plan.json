@@ -1,0 +1,63 @@
+{
+  "title": "Markdown Plan Viewer Server",
+  "plan": "plan.md",
+  "tasks": [
+    {
+      "id": "9a2c6f5a-4f13-4d33-8b49-26b0c5b9c2f7",
+      "title": "B1: Project Bootstrap and Tooling",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "1d7d6e1d-3b4d-4f78-8c9b-0a3f9a5b1f20",
+      "title": "B2: .tasks Scanner and API Endpoints",
+      "passes": true,
+      "dependsOn": ["9a2c6f5a-4f13-4d33-8b49-26b0c5b9c2f7"]
+    },
+    {
+      "id": "f0c8d6b1-6e2b-4d3e-9f2a-6b7c8d9e0f12",
+      "title": "B3: Static Assets and Error Handling",
+      "passes": true,
+      "dependsOn": ["1d7d6e1d-3b4d-4f78-8c9b-0a3f9a5b1f20"]
+    },
+    {
+      "id": "3c8b0a9d-2d3e-4a1b-9f8c-1e2d3c4b5a6f",
+      "title": "F1: Client Shell, Routing, and PRD Tree",
+      "passes": true,
+      "dependsOn": [
+        "9a2c6f5a-4f13-4d33-8b49-26b0c5b9c2f7",
+        "1d7d6e1d-3b4d-4f78-8c9b-0a3f9a5b1f20"
+      ]
+    },
+    {
+      "id": "6a9d2f3b-5c4e-4b1a-8d7c-9e0f1a2b3c4d",
+      "title": "F2: Markdown Rendering with Mermaid Support",
+      "passes": true,
+      "dependsOn": ["3c8b0a9d-2d3e-4a1b-9f8c-1e2d3c4b5a6f"]
+    },
+    {
+      "id": "8b1c2d3e-4f5a-4b6c-8d9e-0f1a2b3c4d5e",
+      "title": "F3: Plan Dependency Graph View",
+      "passes": true,
+      "dependsOn": ["3c8b0a9d-2d3e-4a1b-9f8c-1e2d3c4b5a6f"]
+    },
+    {
+      "id": "0f1e2d3c-4b5a-4c6d-8e9f-1a2b3c4d5e6f",
+      "title": "F4: Theme Toggle and Themed Mermaid",
+      "passes": true,
+      "dependsOn": [
+        "6a9d2f3b-5c4e-4b1a-8d7c-9e0f1a2b3c4d",
+        "8b1c2d3e-4f5a-4b6c-8d9e-0f1a2b3c4d5e"
+      ]
+    },
+    {
+      "id": "5e4d3c2b-1a0f-4e9d-8c7b-6a5b4c3d2e1f",
+      "title": "D1: README",
+      "passes": true,
+      "dependsOn": [
+        "f0c8d6b1-6e2b-4d3e-9f2a-6b7c8d9e0f12",
+        "0f1e2d3c-4b5a-4c6d-8e9f-1a2b3c4d5e6f"
+      ]
+    }
+  ]
+}
