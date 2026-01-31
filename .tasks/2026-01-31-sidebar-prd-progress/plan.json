@@ -11,7 +11,7 @@
     {
       "id": "9bb1459b-a0c3-41d5-8796-e5d69fc1263c",
       "title": "F1: Render progress in sidebar and mobile select",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["c07f261b-449d-4b03-b06c-b09738f7594d"]
     }
   ]

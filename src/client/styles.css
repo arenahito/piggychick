@@ -100,6 +100,26 @@ select {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+}
+
+.sidebar-group-title-status {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+  min-width: 1.5em;
+  flex-shrink: 0;
 }
 
 .sidebar-items {

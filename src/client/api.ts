@@ -1,7 +1,10 @@
+export type PrdProgress = "not_started" | "in_progress" | "done";
+
 export type PrdSummary = {
   id: string;
   label: string;
   docs: string[];
+  progress: PrdProgress;
 };
 
 export type PlanPayload = {

@@ -3,6 +3,7 @@ import { createLayout } from "./components/layout";
 import { renderSidebar, type DocKind, type Selection } from "./components/sidebar";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
 import { renderPlanView } from "./components/plan-view";
+import { normalizeProgress, progressToEmoji } from "./progress";
 import "./styles.css";
 
 const root = document.getElementById("app");
@@ -132,11 +133,13 @@ const updateMobileSelect = () => {
   }
   for (const prd of state.prds) {
     const docs: DocKind[] = ["plan", ...prd.docs];
+    const progress = normalizeProgress(prd.progress);
+    const progressEmoji = progressToEmoji(progress);
 
     for (const doc of docs) {
       const option = document.createElement("option");
       option.value = `${encodeURIComponent(prd.id)}|${encodeURIComponent(doc)}`;
-      option.textContent = `${prd.label} / ${doc}`;
+      option.textContent = `${prd.label} ${progressEmoji} / ${doc}`;
       if (state.selection && state.selection.prdId === prd.id && state.selection.doc === doc) {
         option.selected = true;
       }

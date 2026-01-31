@@ -1,4 +1,5 @@
 import type { PrdSummary } from "../api";
+import { normalizeProgress, progressToEmoji, progressToLabel } from "../progress";
 
 export type DocKind = "plan" | string;
 
@@ -21,9 +22,21 @@ export const renderSidebar = (
     const group = document.createElement("div");
     group.className = "sidebar-group";
 
+    const titleRow = document.createElement("div");
+    titleRow.className = "sidebar-group-title-row";
+
     const title = document.createElement("div");
     title.className = "sidebar-group-title";
     title.textContent = prd.label;
+
+    const status = document.createElement("div");
+    status.className = "sidebar-group-title-status";
+    const progress = normalizeProgress(prd.progress);
+    status.textContent = progressToEmoji(progress);
+    status.setAttribute("role", "img");
+    status.setAttribute("aria-label", progressToLabel(progress));
+
+    titleRow.append(title, status);
 
     const items = document.createElement("div");
     items.className = "sidebar-items";
@@ -42,7 +55,7 @@ export const renderSidebar = (
       items.append(button);
     }
 
-    group.append(title, items);
+    group.append(titleRow, items);
     container.append(group);
   }
 };
