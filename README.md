@@ -70,6 +70,26 @@ This generates the static client bundle in `dist/`.
 bun run lint
 ```
 
+## Format
+
+```bash
+bun run fmt
+```
+
+```bash
+bun run fmt:check
+```
+
+Formats code. `fmt:check` verifies formatting without writing files.
+
+## Type Check
+
+```bash
+bun run typecheck
+```
+
+Type-checks with tsgo.
+
 ## Test
 
 ```bash

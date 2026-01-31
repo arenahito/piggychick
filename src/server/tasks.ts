@@ -57,7 +57,7 @@ const reservedDeviceNames = new Set([
   "lpt6",
   "lpt7",
   "lpt8",
-  "lpt9"
+  "lpt9",
 ]);
 
 const resolveRootLabel = (projectRoot: string) => {
@@ -83,8 +83,9 @@ const resolveGitDir = async (projectRoot: string) => {
     const resolved = await realpath(dotGit).catch(() => null);
     if (!resolved) return null;
     targetPath = resolved;
-    stats = await lstat(resolved).catch(() => null);
-    if (!stats) return null;
+    const resolvedStats = await lstat(resolved).catch(() => null);
+    if (!resolvedStats) return null;
+    stats = resolvedStats;
   }
 
   if (stats.isDirectory()) return targetPath;
@@ -190,9 +191,10 @@ const computeProgress = (planJsonText: string): PrdProgress => {
     let allTrue = true;
     let allFalse = true;
     for (const task of parsed.tasks) {
-      const passes = typeof task === "object" && task !== null && "passes" in task
-        ? (task as { passes?: unknown }).passes === true
-        : false;
+      const passes =
+        typeof task === "object" && task !== null && "passes" in task
+          ? (task as { passes?: unknown }).passes === true
+          : false;
       if (passes) {
         allFalse = false;
       } else {
@@ -233,7 +235,10 @@ const readTextFileWithin = async (baseDir: string, filename: string) => {
     }
     try {
       const resolvedAfter = await realpath(resolved).catch(() => null);
-      if (!resolvedAfter || (!resolvedAfter.startsWith(baseDir + sep) && resolvedAfter !== baseDir)) {
+      if (
+        !resolvedAfter ||
+        (!resolvedAfter.startsWith(baseDir + sep) && resolvedAfter !== baseDir)
+      ) {
         throw new TasksError("not_found", 404, "Document not found");
       }
       const stats = await handle.stat();
@@ -338,13 +343,13 @@ export const listPrds = async (root: string): Promise<PrdListPayload> => {
       id: entry.name,
       label: entry.name,
       docs: dedupedDocs,
-      progress
+      progress,
     });
   }
 
   return {
     meta: { rootLabel, gitBranch, rootPath: projectRoot },
-    prds: results.sort((a, b) => a.label.localeCompare(b.label))
+    prds: results.sort((a, b) => a.label.localeCompare(b.label)),
   };
 };
 

@@ -1,21 +1,25 @@
 # AGENTS
 
 ## Purpose
+
 PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the client bundle from `dist/` and exposes APIs that read `.tasks` contents.
 
 ## Commands
+
 - `bun install`
 - `bun run dev`
 - `bun run build`
 - `bun run lint`
 
 ## Structure
+
 - `src/server/`: Bun server entry (`index.ts`).
 - `src/client/`: client entry (`main.ts`), `index.html`, and `styles.css`.
 - `.tasks/`: PRD folders containing `plan.md` and `plan.json` (optional `memory.md`, `learning.md`).
 - `dist/`: built client assets.
 
 ## Conventions
+
 - Keep `.tasks` path handling safe and scoped to the `.tasks` root.
 - Preserve the split between server and client; update both when behavior crosses the boundary.
 - Maintain dark-by-default theme with light toggle persistence.
@@ -25,6 +29,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Sort docs with `Intl.Collator` and de-duplicate case-insensitively for stable ordering.
 
 ## Learnings
+
 - Centralize startup logic in a shared function and inject distRoot/tasksRoot for reuse.
 - Keep path safety checks anchored to realpath boundaries even when roots are configurable.
 - Use a single startup path and toggle behavior differences via environment variables.
@@ -45,6 +50,16 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Keep `coverageDir` set to `./coverage` and ignore `coverage/` in version control.
 
 ## Notes for changes
+
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
 - Favor minimal README updates: commands, `.tasks` requirements, and UI behavior.
 - For local development and verification, do not access npm registries; use local commands and entry points only.
+
+## Post-implementation verification
+
+Complete the following before committing.
+
+- `bun run lint`
+- `bun run fmt`
+- `bun run typecheck`
+- `bun run test`
