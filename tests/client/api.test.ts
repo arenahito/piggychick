@@ -14,18 +14,18 @@ describe("api helpers", () => {
       if (url.endsWith("/api/prds")) {
         return new Response(
           JSON.stringify({ meta: { rootLabel: "", gitBranch: null, rootPath: "/" }, prds: [] }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
+          { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
       if (url.includes("/plan")) {
         return new Response(
-          JSON.stringify({ planMarkdown: "# Plan", planJsonText: "{\"tasks\":[]}" }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
+          JSON.stringify({ planMarkdown: "# Plan", planJsonText: '{"tasks":[]}' }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
       return new Response(JSON.stringify({ markdown: "# Notes" }), {
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     };
 
@@ -43,7 +43,7 @@ describe("api helpers", () => {
     globalThis.fetch = async () =>
       new Response(JSON.stringify({ error: { message: "Nope" } }), {
         status: 400,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
 
     try {

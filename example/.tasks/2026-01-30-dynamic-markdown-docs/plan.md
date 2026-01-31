@@ -75,14 +75,14 @@ flowchart TD
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-| --- | --- | --- |
-| Doc ID format | Use filename without `.md` extension | Matches current hash schema and avoids `.md` in UI labels |
-| Extension handling | Match `.md` case-insensitively | Robust across platforms and user habits |
-| Plan exclusion | Always exclude `plan.md` from docs list | Plan already has dedicated route and UI entry |
-| Sorting | Sort doc IDs via `Intl.Collator("en", { sensitivity: "base", numeric: true })` | Stable display order across environments |
-| Doc ID validation | Disallow empty/whitespace-only IDs, `.`/`..`, path separators, `..` substring, NUL, length > 120, and reserved `plan` | Prevent traversal and route collisions |
-| Case collisions | Deduplicate case-insensitively, keep first sorted entry | Deterministic behavior on case-sensitive filesystems |
+| Topic              | Decision                                                                                                              | Rationale                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Doc ID format      | Use filename without `.md` extension                                                                                  | Matches current hash schema and avoids `.md` in UI labels |
+| Extension handling | Match `.md` case-insensitively                                                                                        | Robust across platforms and user habits                   |
+| Plan exclusion     | Always exclude `plan.md` from docs list                                                                               | Plan already has dedicated route and UI entry             |
+| Sorting            | Sort doc IDs via `Intl.Collator("en", { sensitivity: "base", numeric: true })`                                        | Stable display order across environments                  |
+| Doc ID validation  | Disallow empty/whitespace-only IDs, `.`/`..`, path separators, `..` substring, NUL, length > 120, and reserved `plan` | Prevent traversal and route collisions                    |
+| Case collisions    | Deduplicate case-insensitively, keep first sorted entry                                                               | Deterministic behavior on case-sensitive filesystems      |
 
 ## Tasks
 

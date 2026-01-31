@@ -7,7 +7,7 @@ import mermaid from "mermaid";
 const md = new MarkdownIt({
   html: false,
   linkify: true,
-  typographer: false
+  typographer: false,
 });
 
 md.use(taskLists, { label: true, labelAfter: true });
@@ -36,7 +36,7 @@ export const setMermaidTheme = (theme: MermaidTheme) => {
   mermaid.initialize({
     securityLevel: "strict",
     startOnLoad: false,
-    theme
+    theme,
   });
   mermaid.parseError = (error) => {
     console.warn("Mermaid parse error", error);
@@ -48,7 +48,7 @@ export const renderMarkdown = (markdown: string) => {
   const html = md.render(markdown);
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ["input"],
-    ADD_ATTR: ["checked", "disabled", "type"]
+    ADD_ATTR: ["checked", "disabled", "type"],
   });
 };
 

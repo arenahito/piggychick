@@ -1,13 +1,13 @@
 import { listPrds, readMarkdown, readPlan, TasksError } from "./tasks";
 
 const jsonHeaders = {
-  "Content-Type": "application/json; charset=utf-8"
+  "Content-Type": "application/json; charset=utf-8",
 };
 
 const jsonError = (status: number, code: string, message: string) => {
   return new Response(JSON.stringify({ error: { code, message } }), {
     status,
-    headers: jsonHeaders
+    headers: jsonHeaders,
   });
 };
 

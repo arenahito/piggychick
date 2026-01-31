@@ -28,7 +28,7 @@ const state: {
   rootMeta: null,
   selection: null,
   sidebarCollapsed: false,
-  lastPlan: null
+  lastPlan: null,
 };
 
 const sidebarCollapsedKey = "pgch.sidebarCollapsed";
@@ -156,8 +156,12 @@ const updateMobileSelect = () => {
   const rootLabel = state.rootMeta?.rootLabel ?? "";
   const gitBranch = state.rootMeta?.gitBranch ?? null;
   const rootPrefix = rootLabel
-    ? (gitBranch ? `${rootLabel} @${gitBranch}` : rootLabel)
-    : (gitBranch ? `@${gitBranch}` : "");
+    ? gitBranch
+      ? `${rootLabel} @${gitBranch}`
+      : rootLabel
+    : gitBranch
+      ? `@${gitBranch}`
+      : "";
   for (const prd of state.prds) {
     const docs: DocKind[] = ["plan", ...prd.docs];
     const progress = normalizeProgress(prd.progress);
@@ -213,7 +217,7 @@ const refreshSidebar = () => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
       writeSidebarCollapsed(state.sidebarCollapsed);
       refreshSidebar();
-    }
+    },
   );
   updateMobileSelect();
 };
@@ -236,7 +240,11 @@ const loadSelection = async () => {
       const planContainer = document.createElement("div");
       planContainer.className = "plan-container";
       layout.contentBody.append(planContainer);
-      state.lastPlan = { prdId, planMarkdown: payload.planMarkdown, planJsonText: payload.planJsonText };
+      state.lastPlan = {
+        prdId,
+        planMarkdown: payload.planMarkdown,
+        planJsonText: payload.planJsonText,
+      };
       await renderPlanView(planContainer, payload.planMarkdown, payload.planJsonText, currentTheme);
       return;
     }

@@ -128,16 +128,16 @@ Use Tailwind CSS variables so shadcn/ui tokens map to dark theme defaults.
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-|-------|----------|-----------|
-| App scaffold | Vite + React + TypeScript | Fast local dev, minimal setup |
-| UI system | shadcn/ui + Tailwind | Consistent components + utility styling |
-| Tailwind version | Tailwind CSS v4 with `@tailwindcss/vite` | Aligns with shadcn/ui Vite installation docs |
-| Theme | Dark by default with cyan/teal accents | “Cool” visual style requirement |
-| Charts | Recharts for area/line/radial charts | Fast to implement, React-friendly |
-| Data | Static deterministic mock data in `src/data` | No backend, consistent demos |
-| Fonts | Space Grotesk + Manrope + JetBrains Mono | Distinct, technical aesthetic |
-| Linting | Use `oxlint` only; remove ESLint if present | Matches requested tooling, avoids duplicate linting |
+| Topic            | Decision                                     | Rationale                                           |
+| ---------------- | -------------------------------------------- | --------------------------------------------------- |
+| App scaffold     | Vite + React + TypeScript                    | Fast local dev, minimal setup                       |
+| UI system        | shadcn/ui + Tailwind                         | Consistent components + utility styling             |
+| Tailwind version | Tailwind CSS v4 with `@tailwindcss/vite`     | Aligns with shadcn/ui Vite installation docs        |
+| Theme            | Dark by default with cyan/teal accents       | “Cool” visual style requirement                     |
+| Charts           | Recharts for area/line/radial charts         | Fast to implement, React-friendly                   |
+| Data             | Static deterministic mock data in `src/data` | No backend, consistent demos                        |
+| Fonts            | Space Grotesk + Manrope + JetBrains Mono     | Distinct, technical aesthetic                       |
+| Linting          | Use `oxlint` only; remove ESLint if present  | Matches requested tooling, avoids duplicate linting |
 
 ## Tasks
 

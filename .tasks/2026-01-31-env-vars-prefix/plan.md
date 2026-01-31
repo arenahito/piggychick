@@ -2,11 +2,11 @@
 
 ## Overview
 
-Standardize app-specific environment variables to the PGCH_ prefix, replace the generic PORT with PGCH_PORT, and remove the PGCH_DIST_ROOT override so the dist root is always the packaged dist directory.
+Standardize app-specific environment variables to the PGCH\_ prefix, replace the generic PORT with PGCH_PORT, and remove the PGCH_DIST_ROOT override so the dist root is always the packaged dist directory.
 
 ## Goal
 
-PiggyChick uses only PGCH_* environment variables for app-specific settings and always serves from the fixed dist path under the package root.
+PiggyChick uses only PGCH\_\* environment variables for app-specific settings and always serves from the fixed dist path under the package root.
 
 ## Scope
 
@@ -58,12 +58,12 @@ flowchart TD
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-|-------|----------|-----------|
-| Dist root override | Remove PGCH_DIST_ROOT and always use `{packageRoot}/dist` | User confirmed fixed path is acceptable |
-| Env var prefix | Use PGCH_ prefix for app-specific variables | Avoid collisions and standardize naming |
-| Port variable | Replace PORT with PGCH_PORT | Avoid conflicts with other apps |
-| Backward compatibility | Do not support old names | User explicitly requested no compatibility |
+| Topic                  | Decision                                                  | Rationale                                  |
+| ---------------------- | --------------------------------------------------------- | ------------------------------------------ |
+| Dist root override     | Remove PGCH_DIST_ROOT and always use `{packageRoot}/dist` | User confirmed fixed path is acceptable    |
+| Env var prefix         | Use PGCH\_ prefix for app-specific variables              | Avoid collisions and standardize naming    |
+| Port variable          | Replace PORT with PGCH_PORT                               | Avoid conflicts with other apps            |
+| Backward compatibility | Do not support old names                                  | User explicitly requested no compatibility |
 
 ## Risks and Mitigations
 
@@ -71,7 +71,7 @@ flowchart TD
 
 ## Tasks
 
-### B1: Rename server environment variables to PGCH_* 
+### B1: Rename server environment variables to PGCH\_\*
 
 - **ID**: `59e674bd-cddd-4724-94ea-4851044aba92`
 - **Category**: `backend`
@@ -89,11 +89,11 @@ Update server startup configuration to read PGCH-prefixed environment variables 
 - Keep existing behavior for numeric parsing and default values to avoid unrelated changes.
 - Run `rg -n "process\.env\.(PORT|OPEN_BROWSER|OPEN_DELAY_MS)"` to confirm no old names remain.
 - Run `rg -n "process\.env\.PORT|\$env:PORT|\bPORT=|OPEN_BROWSER|OPEN_DELAY_MS"` and update any in-repo text (README/help/scripts) that mentions old env var names.
-- Review user-facing error/help strings in `src/cli.ts` and `bin/pgch.js`; if any mention old env var names, update them to PGCH_*.
+- Review user-facing error/help strings in `src/cli.ts` and `bin/pgch.js`; if any mention old env var names, update them to PGCH\_\*.
 
 #### Acceptance Criteria
 
-- [ ] `src/server/app.ts` reads only PGCH_* environment variables.
+- [ ] `src/server/app.ts` reads only PGCH\_\* environment variables.
 - [ ] Port selection still honors `options.port` and defaults to 3000 when unset.
 - [ ] Auto-open behavior and delay match existing semantics except for the variable names.
 - [ ] `rg -n "process\.env\.(PORT|OPEN_BROWSER|OPEN_DELAY_MS)"` returns no matches.

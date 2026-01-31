@@ -16,8 +16,8 @@ describe("buildPlanGraph", () => {
     const json = JSON.stringify({
       tasks: [
         { id: "a", title: "Task <A>", passes: true, dependsOn: [] },
-        { id: "b", title: "Task [B]", passes: false, dependsOn: ["a", "missing"] }
-      ]
+        { id: "b", title: "Task [B]", passes: false, dependsOn: ["a", "missing"] },
+      ],
     });
 
     const result = buildPlanGraph(json, "dark");

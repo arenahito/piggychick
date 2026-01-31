@@ -64,15 +64,15 @@ flowchart TD
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-|-------|----------|-----------|
-| Test runner | Use Bun’s built-in `bun test` | Already on Bun; no extra framework needed |
-| Coverage target | 0.90 for lines/functions/statements | Matches user request |
-| Coverage scope | Exclude DOM-heavy client modules and entrypoints | Avoid heavy browser test harness while still covering core logic |
-| Test location | `tests/**` with `*.test.ts` | Matches Bun discovery defaults and keeps source clean |
-| Integration tests | One `startServer` smoke test | Covers static file + API routing without E2E UI |
-| Symlink/hardlink tests | Best-effort with skip on unsupported platforms | Windows may restrict link creation |
-| PRD eligibility | `plan.md` and `plan.json` are both required by current server code | Tests align with current behavior |
+| Topic                  | Decision                                                           | Rationale                                                        |
+| ---------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Test runner            | Use Bun’s built-in `bun test`                                      | Already on Bun; no extra framework needed                        |
+| Coverage target        | 0.90 for lines/functions/statements                                | Matches user request                                             |
+| Coverage scope         | Exclude DOM-heavy client modules and entrypoints                   | Avoid heavy browser test harness while still covering core logic |
+| Test location          | `tests/**` with `*.test.ts`                                        | Matches Bun discovery defaults and keeps source clean            |
+| Integration tests      | One `startServer` smoke test                                       | Covers static file + API routing without E2E UI                  |
+| Symlink/hardlink tests | Best-effort with skip on unsupported platforms                     | Windows may restrict link creation                               |
+| PRD eligibility        | `plan.md` and `plan.json` are both required by current server code | Tests align with current behavior                                |
 
 ## Tasks
 

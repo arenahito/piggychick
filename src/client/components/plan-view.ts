@@ -5,7 +5,7 @@ export const renderPlanView = async (
   container: HTMLElement,
   planMarkdown: string,
   planJsonText: string,
-  theme: "dark"
+  theme: "dark",
 ) => {
   container.innerHTML = "";
 

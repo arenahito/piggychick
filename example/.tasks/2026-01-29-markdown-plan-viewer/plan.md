@@ -156,19 +156,19 @@ sequenceDiagram
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-|-------|----------|-----------|
-| Server runtime | Bun built-in server | Minimal setup and matches required stack |
-| Client stack | Vanilla TypeScript + DOM | Small footprint, no framework requirement |
-| Markdown renderer | markdown-it + GFM plugins | Reliable GitHub-flavored Markdown support |
-| Markdown styling | github-markdown-css | Familiar GitHub appearance |
-| Mermaid rendering | mermaid client-side | Supports both embedded diagrams and graph view |
-| Graph generation | Mermaid flowchart from plan.json | Leverages same renderer and theming |
-| Linting | oxlint only | Matches requirement, avoids duplicate linting |
-| .tasks root | Fixed to `./.tasks` (cwd) | Matches requirement; no env override needed |
-| plan.json parsing | Client parses raw JSON text | Enables readable error state on invalid JSON |
-| Client build | `bun build` + static file copy | Minimal tooling under Bun stack |
-| Fonts | Google Fonts CDN | Offline support not required |
+| Topic             | Decision                         | Rationale                                      |
+| ----------------- | -------------------------------- | ---------------------------------------------- |
+| Server runtime    | Bun built-in server              | Minimal setup and matches required stack       |
+| Client stack      | Vanilla TypeScript + DOM         | Small footprint, no framework requirement      |
+| Markdown renderer | markdown-it + GFM plugins        | Reliable GitHub-flavored Markdown support      |
+| Markdown styling  | github-markdown-css              | Familiar GitHub appearance                     |
+| Mermaid rendering | mermaid client-side              | Supports both embedded diagrams and graph view |
+| Graph generation  | Mermaid flowchart from plan.json | Leverages same renderer and theming            |
+| Linting           | oxlint only                      | Matches requirement, avoids duplicate linting  |
+| .tasks root       | Fixed to `./.tasks` (cwd)        | Matches requirement; no env override needed    |
+| plan.json parsing | Client parses raw JSON text      | Enables readable error state on invalid JSON   |
+| Client build      | `bun build` + static file copy   | Minimal tooling under Bun stack                |
+| Fonts             | Google Fonts CDN                 | Offline support not required                   |
 
 ## Tasks
 

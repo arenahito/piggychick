@@ -13,7 +13,9 @@ const ensureDistRoot = (root) => {
     const stats = lstatSync(root);
     if (stats.isDirectory()) return;
   } catch {}
-  console.error(`dist root was not found: ${root}. Run \`bun run build\` in the package directory.`);
+  console.error(
+    `dist root was not found: ${root}. Run \`bun run build\` in the package directory.`,
+  );
   process.exit(1);
 };
 
@@ -36,7 +38,7 @@ const runWithNode = () => {
   ensureBun();
   const cliPath = resolve(packageRoot, "src/cli.ts");
   const child = spawn("bun", [cliPath, ...process.argv.slice(2)], {
-    stdio: "inherit"
+    stdio: "inherit",
   });
   child.on("exit", (code) => process.exit(code ?? 0));
   child.on("error", () => process.exit(1));

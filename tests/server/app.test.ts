@@ -18,7 +18,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {
@@ -53,7 +53,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {
@@ -80,7 +80,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {
@@ -105,7 +105,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {
@@ -132,7 +132,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {
@@ -168,7 +168,7 @@ describe("startServer", () => {
       tasksRoot,
       distRoot,
       port: 0,
-      openBrowser: false
+      openBrowser: false,
     });
 
     try {

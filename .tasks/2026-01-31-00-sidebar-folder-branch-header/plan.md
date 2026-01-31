@@ -16,6 +16,7 @@ The UI shows a root line formatted as `folder` or `folder @branch` depending on 
 - Update the mobile select options to include `folder @branch / PRD / doc`.
 
 Out of scope:
+
 - Changing PRD discovery rules or task list ordering.
 - New UI screens or theme changes.
 - Any git operations beyond reading the current branch.
@@ -85,14 +86,14 @@ flowchart TD
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-| --- | --- | --- |
-| Root folder | Use the parent folder name of `.tasks` | Matches user requirement and current `.tasks` layout |
-| Non-git behavior | Always show `rootLabel`; omit `@` and branch when unavailable | Keeps hierarchy consistent while honoring requirement |
-| Branch display | Show only when git repo and branch ref exists | Avoid showing `@` for non-git or detached HEAD |
-| Truncation | Apply single-line ellipsis to `folder @branch` | Requirement for overflow handling |
-| Mobile select | Include root header in option labels | User requested matching hierarchy |
-| API compatibility | Update client and server together; no backward-compatible shape | Single bundled app with internal API |
+| Topic             | Decision                                                        | Rationale                                             |
+| ----------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+| Root folder       | Use the parent folder name of `.tasks`                          | Matches user requirement and current `.tasks` layout  |
+| Non-git behavior  | Always show `rootLabel`; omit `@` and branch when unavailable   | Keeps hierarchy consistent while honoring requirement |
+| Branch display    | Show only when git repo and branch ref exists                   | Avoid showing `@` for non-git or detached HEAD        |
+| Truncation        | Apply single-line ellipsis to `folder @branch`                  | Requirement for overflow handling                     |
+| Mobile select     | Include root header in option labels                            | User requested matching hierarchy                     |
+| API compatibility | Update client and server together; no backward-compatible shape | Single bundled app with internal API                  |
 
 ## Tasks
 

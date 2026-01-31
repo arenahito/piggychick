@@ -12,17 +12,13 @@
       "id": "1d38594e-b7b4-4260-b7bf-99a7b0ecdb03",
       "title": "F1: Client navigation for dynamic docs",
       "passes": false,
-      "dependsOn": [
-        "9603f66a-b381-4fda-9132-25551c196fce"
-      ]
+      "dependsOn": ["9603f66a-b381-4fda-9132-25551c196fce"]
     },
     {
       "id": "3363ef86-42c0-425c-9c8f-0ecc402bf933",
       "title": "D1: Documentation update",
       "passes": false,
-      "dependsOn": [
-        "9603f66a-b381-4fda-9132-25551c196fce"
-      ]
+      "dependsOn": ["9603f66a-b381-4fda-9132-25551c196fce"]
     }
   ]
 }

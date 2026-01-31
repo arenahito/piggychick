@@ -12,5 +12,5 @@ coveragePathIgnorePatterns = [
   "**/src/cli.ts",
   "**/src/client/main.ts",
   "**/src/client/components/**",
-  "**/src/client/renderers/markdown.ts"
+  "**/src/client/renderers/markdown.ts",
 ]

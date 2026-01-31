@@ -70,10 +70,10 @@ sequenceDiagram
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-|-------|----------|-----------|
-| Persistence | Use localStorage key `pgch.sidebarCollapsed` | Simple client-only state that survives reloads |
-| Collapse behavior | Skip rendering PRD groups when collapsed | Keeps DOM small and avoids hidden interactive elements |
+| Topic               | Decision                                             | Rationale                                                     |
+| ------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| Persistence         | Use localStorage key `pgch.sidebarCollapsed`         | Simple client-only state that survives reloads                |
+| Collapse behavior   | Skip rendering PRD groups when collapsed             | Keeps DOM small and avoids hidden interactive elements        |
 | Collapsed indicator | No extra icon/state marker beyond the header styling | Keep UI minimal; collapse is communicated by the missing list |
 
 ## Risks and Mitigations

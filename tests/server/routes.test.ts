@@ -49,21 +49,21 @@ describe("handleApiRequest", () => {
     await withTempRoot(async (root) => {
       await createPrd(root, "alpha", {
         planMarkdown: "# Plan Alpha",
-        planJson: { tasks: [] }
+        planJson: { tasks: [] },
       });
       const request = new Request("http://localhost/api/prds/alpha/plan");
       const response = await handleApiRequest(request, root);
       expect(response.status).toBe(200);
       const payload = await response.json();
       expect(payload.planMarkdown).toContain("Plan Alpha");
-      expect(payload.planJsonText).toContain("\"tasks\"");
+      expect(payload.planJsonText).toContain('"tasks"');
     });
   });
 
   test("returns markdown payload", async () => {
     await withTempRoot(async (root) => {
       await createPrd(root, "alpha", {
-        docs: [{ name: "notes.md", content: "# Notes" }]
+        docs: [{ name: "notes.md", content: "# Notes" }],
       });
       const request = new Request("http://localhost/api/prds/alpha/notes");
       const response = await handleApiRequest(request, root);

@@ -53,13 +53,13 @@ flowchart TD
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-| --- | --- | --- |
-| Env var name | `PGCH_TASKS_ROOT` | Matches existing `PGCH_*` env var convention in `src/server/app.ts` |
-| Relative path base | `process.cwd()` | Matches current default resolution for CLI/binary |
-| Args behavior | Ignore positional tasks-root argument; forward other args unchanged | Removes path-based arg usage while keeping future flags possible |
-| Empty env var | Treat as unset | Avoid surprising resolution to `cwd/""` |
-| Scripts portability | Use `cross-env` in `dev` script | Avoid Windows env syntax regressions |
+| Topic               | Decision                                                            | Rationale                                                           |
+| ------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Env var name        | `PGCH_TASKS_ROOT`                                                   | Matches existing `PGCH_*` env var convention in `src/server/app.ts` |
+| Relative path base  | `process.cwd()`                                                     | Matches current default resolution for CLI/binary                   |
+| Args behavior       | Ignore positional tasks-root argument; forward other args unchanged | Removes path-based arg usage while keeping future flags possible    |
+| Empty env var       | Treat as unset                                                      | Avoid surprising resolution to `cwd/""`                             |
+| Scripts portability | Use `cross-env` in `dev` script                                     | Avoid Windows env syntax regressions                                |
 
 ## Tasks
 
@@ -91,6 +91,7 @@ Remove positional argument handling for the tasks root and resolve it from `PGCH
   - Keep default as `.tasks` when env var is not set.
 
 Edge cases:
+
 - Env var set to whitespace only -> treat as unset.
 - Env var set to relative path -> resolve from cwd.
 - Env var set to absolute path -> resolve as-is.

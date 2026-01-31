@@ -70,13 +70,13 @@ export type PrdSummary = {
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-| --- | --- | --- |
-| Progress computation | Server-side in `listPrds` | Avoid extra per-PRD requests from the client |
-| Invalid `plan.json` | Treat as not started | Matches requirement and avoids UI errors |
-| Mobile select display | Include same emoji | User requested both sidebar and mobile |
-| Emoji rendering | Use Unicode codepoints | Avoid paste issues for U+1F504 |
-| Client fallback | Default missing `progress` to `not_started` | Allows safe rollout order (server first, client second) |
+| Topic                 | Decision                                    | Rationale                                               |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------- |
+| Progress computation  | Server-side in `listPrds`                   | Avoid extra per-PRD requests from the client            |
+| Invalid `plan.json`   | Treat as not started                        | Matches requirement and avoids UI errors                |
+| Mobile select display | Include same emoji                          | User requested both sidebar and mobile                  |
+| Emoji rendering       | Use Unicode codepoints                      | Avoid paste issues for U+1F504                          |
+| Client fallback       | Default missing `progress` to `not_started` | Allows safe rollout order (server first, client second) |
 
 ## Risks
 

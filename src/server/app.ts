@@ -11,7 +11,7 @@ export type ServerOptions = {
 };
 
 const notFoundHeaders = {
-  "Content-Type": "text/plain; charset=utf-8"
+  "Content-Type": "text/plain; charset=utf-8",
 };
 
 const contentTypes: Record<string, string> = {
@@ -31,7 +31,7 @@ const contentTypes: Record<string, string> = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".ttf": "font/ttf",
-  ".txt": "text/plain; charset=utf-8"
+  ".txt": "text/plain; charset=utf-8",
 };
 
 const resolveContentType = (pathname: string) => {
@@ -62,10 +62,11 @@ export const startServer = async (options: ServerOptions) => {
     const indexReal = await realpath(indexPath).catch(() => null);
     if (indexReal && isWithinRoot(indexReal)) {
       return new Response(Bun.file(indexReal), {
-        headers: { "Content-Type": "text/html; charset=utf-8" }
+        headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }
-    const fallback = "<!doctype html><html><head><meta charset=\"utf-8\" /><title>PiggyChick</title></head><body><div id=\"app\">Build the client to see the UI.</div></body></html>";
+    const fallback =
+      '<!doctype html><html><head><meta charset="utf-8" /><title>PiggyChick</title></head><body><div id="app">Build the client to see the UI.</div></body></html>';
     return new Response(fallback, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   };
 
@@ -94,13 +95,13 @@ export const startServer = async (options: ServerOptions) => {
         return serveIndex();
       }
       const headers: Record<string, string> = {
-        "Content-Type": resolveContentType(pathname)
+        "Content-Type": resolveContentType(pathname),
       };
       if (shouldCache(pathname)) {
         headers["Cache-Control"] = "public, max-age=60";
       }
       return new Response(Bun.file(realFile), { headers });
-    }
+    },
   });
 
   const shouldOpenBrowser = options.openBrowser ?? true;

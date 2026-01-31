@@ -29,8 +29,8 @@ const graphTheme: Record<GraphTheme, Record<string, string>> = {
     failStroke: "#4a5568",
     missingFill: "#3b3b3b",
     missingStroke: "#6b6b6b",
-    text: "#e6edf3"
-  }
+    text: "#e6edf3",
+  },
 };
 
 const escapeLabel = (label: string) => {
@@ -57,13 +57,13 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
   const lines: string[] = ["flowchart TD"];
   const graphNodes: PlanGraphNode[] = [];
   lines.push(
-    `  classDef pass fill:${palette.passFill},stroke:${palette.passStroke},color:${palette.text}`
+    `  classDef pass fill:${palette.passFill},stroke:${palette.passStroke},color:${palette.text}`,
   );
   lines.push(
-    `  classDef fail fill:${palette.failFill},stroke:${palette.failStroke},color:${palette.text}`
+    `  classDef fail fill:${palette.failFill},stroke:${palette.failStroke},color:${palette.text}`,
   );
   lines.push(
-    `  classDef missing fill:${palette.missingFill},stroke:${palette.missingStroke},stroke-dasharray: 4 4,color:${palette.text}`
+    `  classDef missing fill:${palette.missingFill},stroke:${palette.missingStroke},stroke-dasharray: 4 4,color:${palette.text}`,
   );
 
   const nodes = data.tasks.map((task, index) => ({ task, nodeId: `t${index}` }));
@@ -92,9 +92,7 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
 
   for (const node of nodes) {
     const nodeIds = [node.nodeId];
-    const deps = Array.isArray(node.task.dependsOn)
-      ? Array.from(new Set(node.task.dependsOn))
-      : [];
+    const deps = Array.isArray(node.task.dependsOn) ? Array.from(new Set(node.task.dependsOn)) : [];
     for (const dep of deps) {
       const depNodes = idMap.get(dep);
       const targets = depNodes && depNodes.length > 0 ? depNodes : [ensureMissingNode(dep)];

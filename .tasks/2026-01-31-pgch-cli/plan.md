@@ -7,6 +7,7 @@ This plan packages PiggyChick for npm so it can be executed via `npx`/`bunx` and
 ## Goal
 
 After implementation, users can run:
+
 - `bunx @arenahito/piggychick` or `npx @arenahito/piggychick`
 - `pgch` after installing the package globally (or via a bin shim)
 
@@ -20,6 +21,7 @@ The CLI serves the bundled client assets from the package and reads `.tasks` fro
 - Update README usage instructions
 
 Excluded:
+
 - UI changes or new API endpoints
 - Changes to `.tasks` format or validation logic
 
@@ -87,14 +89,14 @@ No UI changes are in scope.
 
 ## Decisions
 
-| Topic | Decision | Rationale |
-| --- | --- | --- |
-| Bin name | Use `pgch` as the published bin in `package.json` | Matches requested short command |
-| Runtime | `pgch` uses a Node shebang and spawns `bun` when needed | Allows `npx` while keeping Bun runtime |
-| Module format | Keep ESM (`type: "module"`) and ESM `bin/pgch.js` | Current package is already ESM |
-| dist location | Pass explicit `distRoot` into server startup | CLI must serve packaged assets regardless of cwd |
-| Install behavior | `pgch` available on PATH only for global install; local install uses `bunx pgch` | Matches npm/bun bin conventions |
-| CLI args | Support positional `tasksRoot` only (no flags) | Keep CLI simple and aligned with current usage |
+| Topic            | Decision                                                                         | Rationale                                        |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Bin name         | Use `pgch` as the published bin in `package.json`                                | Matches requested short command                  |
+| Runtime          | `pgch` uses a Node shebang and spawns `bun` when needed                          | Allows `npx` while keeping Bun runtime           |
+| Module format    | Keep ESM (`type: "module"`) and ESM `bin/pgch.js`                                | Current package is already ESM                   |
+| dist location    | Pass explicit `distRoot` into server startup                                     | CLI must serve packaged assets regardless of cwd |
+| Install behavior | `pgch` available on PATH only for global install; local install uses `bunx pgch` | Matches npm/bun bin conventions                  |
+| CLI args         | Support positional `tasksRoot` only (no flags)                                   | Keep CLI simple and aligned with current usage   |
 
 ## Tasks
 

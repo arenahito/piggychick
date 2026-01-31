@@ -52,8 +52,8 @@ describe("listPrds", () => {
       const prdDir = await createPrd(root, "docs", {
         docs: [
           { name: "alpha.md", content: "# A" },
-          { name: "beta.md", content: "# B" }
-        ]
+          { name: "beta.md", content: "# B" },
+        ],
       });
 
       try {
@@ -71,7 +71,7 @@ describe("listPrds", () => {
   test("excludes symlinked or hard-linked markdown files when possible", async () => {
     await withTempRoot(async (root) => {
       const prdDir = await createPrd(root, "linked", {
-        docs: [{ name: "source.md", content: "# Source" }]
+        docs: [{ name: "source.md", content: "# Source" }],
       });
 
       let createdSymlink = false;
@@ -169,12 +169,12 @@ describe("readPlan", () => {
     await withTempRoot(async (root) => {
       await createPrd(root, "alpha", {
         planMarkdown: "# Plan Alpha",
-        planJson: { tasks: [] }
+        planJson: { tasks: [] },
       });
 
       const payload = await readPlan(root, "alpha");
       expect(payload.planMarkdown).toContain("Plan Alpha");
-      expect(payload.planJsonText).toContain("\"tasks\"");
+      expect(payload.planJsonText).toContain('"tasks"');
     });
   });
 
@@ -226,7 +226,7 @@ describe("readPlan", () => {
   test("tolerates rapid plan.json replacement", async () => {
     await withTempRoot(async (root) => {
       const prdDir = await createPrd(root, "swap", {
-        planJson: { tasks: [{ passes: false }] }
+        planJson: { tasks: [{ passes: false }] },
       });
       const planPath = join(prdDir, "plan.json");
       const replace = writeFile(planPath, JSON.stringify({ tasks: [{ passes: true }] }), "utf8");
@@ -251,7 +251,7 @@ describe("readMarkdown", () => {
   test("returns markdown for a valid doc", async () => {
     await withTempRoot(async (root) => {
       await createPrd(root, "alpha", {
-        docs: [{ name: "notes.md", content: "# Notes" }]
+        docs: [{ name: "notes.md", content: "# Notes" }],
       });
 
       const payload = await readMarkdown(root, "alpha", "notes");
@@ -292,7 +292,7 @@ describe("readMarkdown", () => {
         "aux",
         "lpt1",
         "com1",
-        "a".repeat(121)
+        "a".repeat(121),
       ];
 
       for (const id of invalid) {

@@ -12,58 +12,43 @@
       "id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
       "title": "F2: Tailwind CSS and Global Theme Foundation",
       "passes": true,
-      "dependsOn": [
-        "5f7a1f1e-2c3d-4c6a-9a7b-1a0b2c3d4e5f"
-      ]
+      "dependsOn": ["5f7a1f1e-2c3d-4c6a-9a7b-1a0b2c3d4e5f"]
     },
     {
       "id": "7c8d9e0f-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
       "title": "F3: shadcn/ui Initialization and Base Components",
       "passes": true,
-      "dependsOn": [
-        "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
-      ]
+      "dependsOn": ["1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"]
     },
     {
       "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
       "title": "F4: Demo Data Model and Mock Data",
       "passes": true,
-      "dependsOn": [
-        "5f7a1f1e-2c3d-4c6a-9a7b-1a0b2c3d4e5f"
-      ]
+      "dependsOn": ["5f7a1f1e-2c3d-4c6a-9a7b-1a0b2c3d4e5f"]
     },
     {
       "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
       "title": "F5: Layout Shell and Navigation Components",
       "passes": true,
-      "dependsOn": [
-        "7c8d9e0f-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
-        "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-      ]
+      "dependsOn": ["7c8d9e0f-1a2b-4c3d-8e9f-0a1b2c3d4e5f", "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"]
     },
     {
       "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
       "title": "F6: Dashboard Sections and Visual Components",
       "passes": true,
-      "dependsOn": [
-        "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-      ]
+      "dependsOn": ["b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"]
     },
     {
       "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
       "title": "F7: Interaction Polish, Motion, and Responsive Refinements",
       "passes": false,
-      "dependsOn": [
-        "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
-      ]
+      "dependsOn": ["c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"]
     },
     {
       "id": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
       "title": "D1: Project README",
       "passes": false,
-      "dependsOn": [
-        "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
-      ]
+      "dependsOn": ["d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"]
     }
   ]
 }

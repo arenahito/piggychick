@@ -14,12 +14,15 @@ const assertDistRoot = (distRoot: string) => {
     const stats = lstatSync(distRoot);
     if (stats.isDirectory()) return;
   } catch {}
-  console.error(`dist root was not found: ${distRoot}. Run \`bun run build\` in the package directory.`);
+  console.error(
+    `dist root was not found: ${distRoot}. Run \`bun run build\` in the package directory.`,
+  );
   process.exit(1);
 };
 
 export const runCli = async (overrides: { tasksRoot?: string } = {}) => {
-  const tasksRoot = overrides.tasksRoot ?? resolveTasksRootFromEnv(resolve(process.cwd(), ".tasks"));
+  const tasksRoot =
+    overrides.tasksRoot ?? resolveTasksRootFromEnv(resolve(process.cwd(), ".tasks"));
   const distRoot = resolve(resolvePackageRoot(), "dist");
   assertDistRoot(distRoot);
   await startServer({ tasksRoot, distRoot });

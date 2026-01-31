@@ -17,14 +17,18 @@ export const renderSidebar = (
   selection: Selection | null,
   isCollapsed: boolean,
   onSelect: SelectHandler,
-  onToggleCollapse: () => void
+  onToggleCollapse: () => void,
 ) => {
   container.innerHTML = "";
   const shouldCollapse = isCollapsed && rootMeta !== null;
   if (rootMeta) {
     const headerText = rootMeta.rootLabel
-      ? (rootMeta.gitBranch ? `${rootMeta.rootLabel} @${rootMeta.gitBranch}` : rootMeta.rootLabel)
-      : (rootMeta.gitBranch ? `@${rootMeta.gitBranch}` : "");
+      ? rootMeta.gitBranch
+        ? `${rootMeta.rootLabel} @${rootMeta.gitBranch}`
+        : rootMeta.rootLabel
+      : rootMeta.gitBranch
+        ? `@${rootMeta.gitBranch}`
+        : "";
     const trimmedHeader = headerText.trim();
     const displayHeader = trimmedHeader || "PRDs";
     if (displayHeader) {
