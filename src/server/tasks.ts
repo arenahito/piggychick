@@ -349,7 +349,7 @@ export const listPrds = async (root: string): Promise<PrdListPayload> => {
 
   return {
     meta: { rootLabel, gitBranch, rootPath: projectRoot },
-    prds: results.sort((a, b) => a.label.localeCompare(b.label)),
+    prds: results.sort((a, b) => b.label.localeCompare(a.label)),
   };
 };
 

@@ -67,7 +67,7 @@ select {
 .app-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: calc(var(--space) * 2);
   padding: calc(var(--space) * 2);
   min-height: 0;
@@ -88,7 +88,7 @@ select {
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space) * 2);
+  gap: 4px;
 }
 
 .sidebar-footer {
@@ -225,7 +225,7 @@ select {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
-  padding: 8px 12px;
+  padding: 6px 12px;
   cursor: pointer;
 }
 
