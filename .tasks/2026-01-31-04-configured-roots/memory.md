@@ -7,3 +7,8 @@
 - Validate tasks directory names to block Windows drive-like tokens (e.g., `:`) and other unsafe characters.
 - Comment-only config files should parse to an empty object and fall back to defaults.
 
+## B2: CLI commands and startup integration
+
+- Centralize startup validation to reuse dist root resolution and index.html checks across CLI and direct server entry.
+- Resolve the package root by walking up to find package.json so dist resolution is consistent in dev and packaged runs.
+

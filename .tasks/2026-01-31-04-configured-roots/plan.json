@@ -9,7 +9,7 @@
     {
       "id": "b6f43e4d-4bbc-4720-af1d-a4b9f2e4851c",
       "title": "B2: CLI commands and startup integration",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["cfb6050f-2280-4128-b20e-f54193274ef3"]
     },
     {
