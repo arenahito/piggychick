@@ -8,14 +8,6 @@ const resolvePackageRoot = () => {
   return resolve(dirname(currentFile), "..");
 };
 
-const resolveDistRoot = () => {
-  const envRoot = process.env.PGCH_DIST_ROOT;
-  if (envRoot && envRoot.trim().length > 0) {
-    return resolve(envRoot);
-  }
-  return resolve(resolvePackageRoot(), "dist");
-};
-
 const resolveTasksRoot = (arg?: string) => {
   if (arg) {
     return resolve(arg);
@@ -32,9 +24,9 @@ const assertDistRoot = (distRoot: string) => {
   process.exit(1);
 };
 
-export const runCli = async (overrides: { tasksRoot?: string; distRoot?: string } = {}) => {
+export const runCli = async (overrides: { tasksRoot?: string } = {}) => {
   const tasksRoot = overrides.tasksRoot ?? resolveTasksRoot(process.argv[2]);
-  const distRoot = overrides.distRoot ? resolve(overrides.distRoot) : resolveDistRoot();
+  const distRoot = resolve(resolvePackageRoot(), "dist");
   assertDistRoot(distRoot);
   await startServer({ tasksRoot, distRoot });
 };

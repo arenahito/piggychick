@@ -9,7 +9,7 @@
     {
       "id": "fe936267-608f-407c-b160-7a68b274fd5f",
       "title": "X1: Remove PGCH_DIST_ROOT and fix dist root resolution",
-      "passes": false,
+      "passes": true,
       "dependsOn": []
     }
   ]

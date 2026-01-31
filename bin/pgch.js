@@ -8,14 +8,6 @@ const currentFile = fileURLToPath(import.meta.url);
 const packageRoot = resolve(dirname(currentFile), "..");
 const distRoot = resolve(packageRoot, "dist");
 
-const resolveDistRoot = () => {
-  const envRoot = process.env.PGCH_DIST_ROOT;
-  if (envRoot && envRoot.trim().length > 0) {
-    return resolve(envRoot);
-  }
-  return distRoot;
-};
-
 const ensureDistRoot = (root) => {
   try {
     const stats = lstatSync(root);
@@ -42,20 +34,17 @@ const resolveTasksRoot = () => {
 };
 
 const runWithBun = async () => {
-  const effectiveDistRoot = resolveDistRoot();
-  ensureDistRoot(effectiveDistRoot);
+  ensureDistRoot(distRoot);
   const { runCli } = await import("../src/cli.ts");
-  await runCli({ tasksRoot: resolveTasksRoot(), distRoot: effectiveDistRoot });
+  await runCli({ tasksRoot: resolveTasksRoot() });
 };
 
 const runWithNode = () => {
-  const effectiveDistRoot = resolveDistRoot();
-  ensureDistRoot(effectiveDistRoot);
+  ensureDistRoot(distRoot);
   ensureBun();
   const cliPath = resolve(packageRoot, "src/cli.ts");
   const child = spawn("bun", [cliPath, ...process.argv.slice(2)], {
-    stdio: "inherit",
-    env: { ...process.env, PGCH_DIST_ROOT: effectiveDistRoot }
+    stdio: "inherit"
   });
   child.on("exit", (code) => process.exit(code ?? 0));
   child.on("error", () => process.exit(1));
