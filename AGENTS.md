@@ -24,6 +24,13 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Resolve real paths before scanning and guard reads against TOCTOU/atomic replace pitfalls.
 - Sort docs with `Intl.Collator` and de-duplicate case-insensitively for stable ordering.
 
+## Learnings
+- Centralize startup logic in a shared function and inject distRoot/tasksRoot for reuse.
+- Keep path safety checks anchored to realpath boundaries even when roots are configurable.
+- Use a single startup path and toggle behavior differences via environment variables.
+- Validate packaged assets at startup and include the effective path in error messages.
+
 ## Notes for changes
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
 - Favor minimal README updates: commands, `.tasks` requirements, and UI behavior.
+- For local development and verification, do not access npm registries; use local commands and entry points only.
