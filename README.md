@@ -70,6 +70,15 @@ This generates the static client bundle in `dist/`.
 bun run lint
 ```
 
+## Test
+
+```bash
+bun test
+```
+
+Tests enforce 90% coverage thresholds via `bunfig.toml`.
+Thresholds apply to line/function/statement coverage; excluded paths are listed in `bunfig.toml`.
+
 ## .tasks Requirements
 
 Each PRD directory must live under `./.tasks/` and include:

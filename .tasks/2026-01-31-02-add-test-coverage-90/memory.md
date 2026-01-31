@@ -15,3 +15,7 @@
 
 - Client API helpers are easiest to test by swapping `globalThis.fetch` and restoring it after each test to avoid leaking state between cases.
 - `buildPlanGraph` assertions should avoid matching Mermaid syntax characters directly; checking for absence of raw labels (e.g., `Task <A>`) is a safer way to confirm escaping.
+
+## D1: Document test command
+
+- Keeping the test command near other development commands in the README reduces onboarding friction and makes coverage expectations visible without extra docs.
