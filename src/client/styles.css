@@ -455,6 +455,26 @@ select {
   overflow: auto;
 }
 
+.plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 1.5);
+}
+
+.plan-section + .plan-section {
+  margin-top: calc(var(--space) * 3);
+}
+
+.plan-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  max-width: 750px;
+  width: 100%;
+  margin: 0 auto;
+}
+
 .plan-graph {
   background: var(--panel-soft);
   border: 1px solid var(--border);

@@ -1,8 +1,8 @@
-import { fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
+import { fetchMarkdown, fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
 import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
-import { renderPlanView } from "./components/plan-view";
+import { renderPlanView, type MarkdownSection } from "./components/plan-view";
 import { normalizeProgress, progressToEmoji } from "./progress";
 import "./styles.css";
 
@@ -32,6 +32,7 @@ const state: {
 };
 
 const sidebarCollapsedKey = "pgch.sidebarCollapsed";
+let selectionRequest = 0;
 
 const readSidebarCollapsed = () => {
   try {
@@ -210,8 +211,59 @@ const loadSelection = async () => {
   setContentMode(true);
   renderContent("Loading…");
 
+  const requestId = ++selectionRequest;
   try {
+    const selectedPrd = state.prds.find((prd) => prd.id === prdId);
+    if (!selectedPrd) {
+      throw new Error("PRD not found");
+    }
+
+    const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+    const normalizedDocs = selectedPrd.docs
+      .map((raw) => {
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        const withoutExt = trimmed.toLowerCase().endsWith(".md") ? trimmed.slice(0, -3) : trimmed;
+        if (!withoutExt) return null;
+        return { original: trimmed, id: withoutExt };
+      })
+      .filter((doc): doc is { original: string; id: string } => doc !== null)
+      .filter((doc, index, list) => {
+        const key = doc.id.toLowerCase();
+        return list.findIndex((candidate) => candidate.id.toLowerCase() === key) === index;
+      })
+      .filter((doc) => doc.id.toLowerCase() !== "plan")
+      .sort((a, b) => collator.compare(a.id, b.id));
+
     const payload = await fetchPlan(prdId);
+    if (requestId !== selectionRequest) return;
+
+    const docPayloads = await Promise.all(
+      normalizedDocs.map(async (doc) => {
+        try {
+          const response = await fetchMarkdown(prdId, doc.id);
+          return { ...doc, markdown: response.markdown };
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "Failed to load content";
+          throw new Error(`Failed to load ${doc.original}: ${detail}`);
+        }
+      }),
+    );
+
+    if (requestId !== selectionRequest) return;
+
+    const sections: MarkdownSection[] = [
+      { kind: "plan", id: "plan", markdown: payload.planMarkdown },
+      ...docPayloads.map(
+        (doc): MarkdownSection => ({
+          kind: "doc",
+          id: doc.id,
+          label: doc.original,
+          markdown: doc.markdown,
+        }),
+      ),
+    ];
+
     layout.contentBody.innerHTML = "";
     const planContainer = document.createElement("div");
     planContainer.className = "plan-container";
@@ -221,8 +273,11 @@ const loadSelection = async () => {
       planMarkdown: payload.planMarkdown,
       planJsonText: payload.planJsonText,
     };
-    await renderPlanView(planContainer, payload.planMarkdown, payload.planJsonText, currentTheme);
+    await renderPlanView(planContainer, sections, payload.planJsonText, currentTheme);
   } catch (error) {
+    if (requestId !== selectionRequest) {
+      return;
+    }
     const message = error instanceof Error ? error.message : "Failed to load content";
     renderError(message);
   }

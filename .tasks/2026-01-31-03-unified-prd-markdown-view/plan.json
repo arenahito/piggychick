@@ -11,7 +11,7 @@
     {
       "id": "c6eeb977-5adc-413f-a1b8-32001baec9c6",
       "title": "F2: Render unified markdown view with plan graph preserved",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["af22f4aa-e0c1-4244-a473-9da6f5369510"]
     }
   ]

@@ -1,9 +1,16 @@
 import { renderMarkdown, renderMermaid } from "../renderers/markdown";
 import { buildPlanGraph } from "../renderers/plan-graph";
 
+export type MarkdownSection = {
+  kind: "plan" | "doc";
+  id: string;
+  label?: string;
+  markdown: string;
+};
+
 export const renderPlanView = async (
   container: HTMLElement,
-  planMarkdown: string,
+  sections: MarkdownSection[],
   planJsonText: string,
   theme: "dark",
 ) => {
@@ -13,8 +20,26 @@ export const renderPlanView = async (
   wrapper.className = "plan-view";
 
   const markdownPane = document.createElement("section");
-  markdownPane.className = "plan-pane plan-markdown markdown-body content-markdown";
-  markdownPane.innerHTML = renderMarkdown(planMarkdown);
+  markdownPane.className = "plan-pane plan-markdown";
+
+  for (const section of sections) {
+    const block = document.createElement("article");
+    block.className = "plan-section";
+
+    if (section.kind === "doc") {
+      const header = document.createElement("div");
+      header.className = "plan-section-title";
+      header.textContent = section.label ?? section.id;
+      block.append(header);
+    }
+
+    const body = document.createElement("div");
+    body.className = "content-markdown markdown-body";
+    body.innerHTML = renderMarkdown(section.markdown);
+    block.append(body);
+
+    markdownPane.append(block);
+  }
 
   const graphPane = document.createElement("section");
   graphPane.className = "plan-pane plan-graph";
