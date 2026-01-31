@@ -22,14 +22,31 @@ export const renderPlanView = async (
   const markdownPane = document.createElement("section");
   markdownPane.className = "plan-pane plan-markdown";
 
+  const docTargets = new Map<string, HTMLElement>();
+
   for (const section of sections) {
     const block = document.createElement("article");
     block.className = "plan-section";
 
     if (section.kind === "doc") {
+      docTargets.set(section.id, block);
       const header = document.createElement("div");
-      header.className = "plan-section-title";
-      header.textContent = section.label ?? section.id;
+      header.className = "plan-section-header";
+
+      const title = document.createElement("div");
+      title.className = "plan-section-title";
+      title.textContent = section.label ?? section.id;
+
+      const topButton = document.createElement("button");
+      topButton.type = "button";
+      topButton.className = "plan-section-top";
+      topButton.textContent = "⬆";
+      topButton.setAttribute("aria-label", "Scroll to top");
+      topButton.addEventListener("click", () => {
+        markdownPane.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      header.append(title, topButton);
       block.append(header);
     }
 
@@ -39,6 +56,26 @@ export const renderPlanView = async (
     block.append(body);
 
     markdownPane.append(block);
+  }
+
+  const docSections = sections.filter((section) => section.kind === "doc");
+  if (docSections.length > 0) {
+    const nav = document.createElement("nav");
+    nav.className = "plan-doc-nav";
+    nav.setAttribute("aria-label", "Markdown sections");
+    for (const section of docSections) {
+      const target = docTargets.get(section.id);
+      if (!target) continue;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "plan-doc-link";
+      button.textContent = section.label ?? section.id;
+      button.addEventListener("click", () => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      nav.append(button);
+    }
+    markdownPane.prepend(nav);
   }
 
   const graphPane = document.createElement("section");
