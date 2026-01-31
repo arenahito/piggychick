@@ -1,0 +1,6 @@
+{
+  "ignorePatterns": [
+    "**/*.md",
+    "**/*.mdx"
+  ]
+}
