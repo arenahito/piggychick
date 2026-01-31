@@ -32,8 +32,21 @@ bun add @arenahito/piggychick
 bunx pgch
 ```
 
-The CLI reads `.tasks` from your current working directory by default. Pass a path to a `.tasks` directory as the first argument to override it.
+The CLI reads `.tasks` from your current working directory by default. Set `PGCH_TASKS_ROOT` to override it (relative paths are resolved from the current working directory).
 Bun is required at runtime.
+
+POSIX:
+
+```bash
+PGCH_TASKS_ROOT=./example/.tasks pgch
+```
+
+PowerShell:
+
+```powershell
+$env:PGCH_TASKS_ROOT = "./example/.tasks"
+pgch
+```
 
 ## Development
 

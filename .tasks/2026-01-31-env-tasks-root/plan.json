@@ -17,7 +17,7 @@
     {
       "id": "6884a7d9-7a2a-4478-935e-6a62ed90a076",
       "title": "D1: Document env-based tasks root usage",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["52150305-5a19-46cb-84af-44758df44002"]
     }
   ]

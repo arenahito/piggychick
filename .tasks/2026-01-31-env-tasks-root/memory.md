@@ -15,3 +15,9 @@ Using `resolve(process.cwd(), value)` keeps relative values anchored to the curr
 ### Pattern: Cross-platform env vars in npm scripts
 
 Switching the `dev` script to `cross-env PGCH_TASKS_ROOT=...` keeps the same behavior on Windows shells, which do not support the POSIX-style `VAR=value` prefix.
+
+## D1: Document env-based tasks root usage
+
+### Documentation: Pair POSIX and PowerShell examples
+
+Including both POSIX and PowerShell snippets prevents confusion about how to set `PGCH_TASKS_ROOT` across shells, especially now that positional arguments are no longer used.
