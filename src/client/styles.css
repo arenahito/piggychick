@@ -65,7 +65,7 @@ select {
 .app-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: calc(var(--space) * 2);
   padding: calc(var(--space) * 2);
   min-height: 0;
@@ -116,7 +116,7 @@ select {
 }
 
 .sidebar-group-title-status {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--muted);
   text-align: right;
   min-width: 1.5em;
