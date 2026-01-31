@@ -48,7 +48,7 @@ const shouldCache = (pathname: string) => {
 };
 
 export const startServer = async (options: ServerOptions) => {
-  const port = Number(options.port ?? process.env.PORT ?? 3000);
+  const port = Number(options.port ?? process.env.PGCH_PORT ?? 3000);
   const tasksRoot = options.tasksRoot;
   const distRoot = resolve(options.distRoot);
   const distRootReal = await realpath(distRoot).catch(() => distRoot);
@@ -106,8 +106,8 @@ export const startServer = async (options: ServerOptions) => {
   const shouldOpenBrowser = options.openBrowser ?? true;
 
   const openBrowser = async () => {
-    if (process.env.OPEN_BROWSER === "0") return;
-    const delayMs = Number(process.env.OPEN_DELAY_MS ?? 1000);
+    if (process.env.PGCH_OPEN_BROWSER === "0") return;
+    const delayMs = Number(process.env.PGCH_OPEN_DELAY_MS ?? 1000);
     if (Number.isFinite(delayMs) && delayMs > 0) {
       await Bun.sleep(delayMs);
     }

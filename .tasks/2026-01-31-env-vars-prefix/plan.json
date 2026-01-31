@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "id": "59e674bd-cddd-4724-94ea-4851044aba92",
+      "title": "B1: Rename server environment variables to PGCH_*",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "fe936267-608f-407c-b160-7a68b274fd5f",
+      "title": "X1: Remove PGCH_DIST_ROOT and fix dist root resolution",
+      "passes": false,
+      "dependsOn": []
+    }
+  ]
+}
