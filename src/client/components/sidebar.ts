@@ -1,4 +1,4 @@
-import type { PrdSummary } from "../api";
+import type { PrdListMeta, PrdSummary } from "../api";
 import { normalizeProgress, progressToEmoji, progressToLabel } from "../progress";
 
 export type DocKind = "plan" | string;
@@ -12,11 +12,25 @@ type SelectHandler = (prdId: string, doc: DocKind) => void;
 
 export const renderSidebar = (
   container: HTMLElement,
+  rootMeta: PrdListMeta | null,
   prds: PrdSummary[],
   selection: Selection | null,
   onSelect: SelectHandler
 ) => {
   container.innerHTML = "";
+
+  if (rootMeta) {
+    const rootHeader = document.createElement("div");
+    rootHeader.className = "sidebar-root";
+    const headerText = rootMeta.rootLabel
+      ? (rootMeta.gitBranch ? `${rootMeta.rootLabel} @${rootMeta.gitBranch}` : rootMeta.rootLabel)
+      : (rootMeta.gitBranch ? `@${rootMeta.gitBranch}` : "");
+    const trimmedHeader = headerText.trim();
+    if (trimmedHeader) {
+      rootHeader.textContent = headerText;
+      container.append(rootHeader);
+    }
+  }
 
   for (const prd of prds) {
     const group = document.createElement("div");

@@ -7,3 +7,7 @@ Handled `.git` in three forms (directory, file, symlink) and resolved `gitdir:` 
 ## F1: Update client data model and mobile select labels
 
 Keeping `meta` as a required API contract simplifies client state while the UI still tolerates an empty `rootLabel` by falling back to `@branch`. The mobile select string assembly remains local to `main.ts`, so future label tweaks stay isolated from data fetching.
+
+## F2: Render root header in sidebar with ellipsis
+
+Rendering the root header as a simple text node with `text-overflow: ellipsis` works as long as the element spans the sidebar width; an explicit `trim` check prevents empty headers from reserving gap space. Keeping the label composition in the renderer avoids coupling CSS with data shape.

@@ -180,7 +180,7 @@ layout.mobileSelect.addEventListener("change", (event) => {
 });
 
 const refreshSidebar = () => {
-  renderSidebar(layout.sidebarContent, state.prds, state.selection, (prdId, doc) => {
+  renderSidebar(layout.sidebarContent, state.rootMeta, state.prds, state.selection, (prdId, doc) => {
     setHash(prdId, doc);
   });
   updateMobileSelect();
