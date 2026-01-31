@@ -1,0 +1,24 @@
+{
+  "title": "Publish PiggyChick CLI with pgch Alias",
+  "plan": "plan.md",
+  "tasks": [
+    {
+      "id": "7f5fbf24-1a1e-4b29-9d8d-faa6f0a8b8a4",
+      "title": "B1: Refactor server startup to accept dist root",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "4f8a79c6-0c41-4f7e-a98c-f4f5d8f9e13b",
+      "title": "X1: Add CLI bin that launches server from packaged assets",
+      "passes": false,
+      "dependsOn": ["7f5fbf24-1a1e-4b29-9d8d-faa6f0a8b8a4"]
+    },
+    {
+      "id": "6b6a8e83-86a1-439a-9f08-7612d6a399e6",
+      "title": "D1: Package metadata and documentation updates",
+      "passes": false,
+      "dependsOn": ["4f8a79c6-0c41-4f7e-a98c-f4f5d8f9e13b"]
+    }
+  ]
+}
