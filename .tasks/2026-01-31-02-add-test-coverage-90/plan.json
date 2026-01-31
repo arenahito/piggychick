@@ -1,0 +1,28 @@
+{
+  "tasks": [
+    {
+      "id": "1f1aca93-9f65-42a0-8cc6-d98f47fd582a",
+      "title": "X1: Add test configuration and coverage rules",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "a9140c46-3d6c-430c-8957-5ce53276fc4c",
+      "title": "B1: Add server/shared unit tests",
+      "passes": false,
+      "dependsOn": ["1f1aca93-9f65-42a0-8cc6-d98f47fd582a"]
+    },
+    {
+      "id": "4e8874fe-4a79-4fe7-b882-38933b51f215",
+      "title": "F1: Add client utility tests (non-DOM)",
+      "passes": false,
+      "dependsOn": ["1f1aca93-9f65-42a0-8cc6-d98f47fd582a"]
+    },
+    {
+      "id": "bc0616af-4034-4633-be11-4e6a7d8c70b2",
+      "title": "D1: Document test command",
+      "passes": false,
+      "dependsOn": ["1f1aca93-9f65-42a0-8cc6-d98f47fd582a"]
+    }
+  ]
+}

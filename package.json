@@ -23,6 +23,7 @@
     "build": "bun run build:client",
     "build:client": "mkdir -p dist dist/assets && bun build src/client/main.ts --outdir dist/assets --target browser && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css",
     "lint": "oxlint . --ignore-path .oxlintignore",
+    "test": "bun test",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
