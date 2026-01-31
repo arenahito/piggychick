@@ -6,7 +6,10 @@ export type PrdSummary = {
   id: string;
   label: string;
   docs: string[];
+  progress: PrdProgress;
 };
+
+export type PrdProgress = "not_started" | "in_progress" | "done";
 
 export class TasksError extends Error {
   code: string;
@@ -110,6 +113,32 @@ const readDirEntries = async (path: string) => {
   }
 };
 
+const computeProgress = (planJsonText: string): PrdProgress => {
+  try {
+    const parsed = JSON.parse(planJsonText) as { tasks?: unknown };
+    if (!parsed || !Array.isArray(parsed.tasks) || parsed.tasks.length === 0) {
+      return "not_started";
+    }
+    let allTrue = true;
+    let allFalse = true;
+    for (const task of parsed.tasks) {
+      const passes = typeof task === "object" && task !== null && "passes" in task
+        ? (task as { passes?: unknown }).passes === true
+        : false;
+      if (passes) {
+        allFalse = false;
+      } else {
+        allTrue = false;
+      }
+    }
+    if (allTrue) return "done";
+    if (allFalse) return "not_started";
+    return "in_progress";
+  } catch {
+    return "not_started";
+  }
+};
+
 const resolveFilePath = async (baseDir: string, filename: string) => {
   const candidate = resolve(baseDir, filename);
   const candidateStats = await lstat(candidate).catch(() => null);
@@ -204,6 +233,14 @@ export const listPrds = async (root: string): Promise<PrdSummary[]> => {
     const hasPlanJson = await fileExists(planJson);
     if (!hasPlanMd || !hasPlanJson) continue;
 
+    let progress: PrdProgress = "not_started";
+    try {
+      const planJsonText = await readTextFileWithin(prdReal, "plan.json");
+      progress = computeProgress(planJsonText);
+    } catch {
+      progress = "not_started";
+    }
+
     const docEntries = await readDirEntries(prdReal);
     const docs: string[] = [];
     for (const docEntry of docEntries) {
@@ -229,7 +266,8 @@ export const listPrds = async (root: string): Promise<PrdSummary[]> => {
     results.push({
       id: entry.name,
       label: entry.name,
-      docs: dedupedDocs
+      docs: dedupedDocs,
+      progress
     });
   }
 
