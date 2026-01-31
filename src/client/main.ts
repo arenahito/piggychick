@@ -1,6 +1,6 @@
-import { fetchMarkdown, fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
+import { fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
 import { createLayout } from "./components/layout";
-import { renderSidebar, type DocKind, type Selection } from "./components/sidebar";
+import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
 import { renderPlanView } from "./components/plan-view";
 import { normalizeProgress, progressToEmoji } from "./progress";
@@ -49,10 +49,10 @@ const writeSidebarCollapsed = (value: boolean) => {
   }
 };
 
-const parseHash = (): (Selection & { implicitDoc: boolean }) | null => {
+const parseHash = (): { prdId: string; hasExtra: boolean } | null => {
   const raw = window.location.hash.replace(/^#\/?/, "");
   if (!raw) return null;
-  const [prdIdRaw, ...docParts] = raw.split("/");
+  const [prdIdRaw, ...extraParts] = raw.split("/");
   if (!prdIdRaw) return null;
   let prdId = "";
   try {
@@ -60,22 +60,12 @@ const parseHash = (): (Selection & { implicitDoc: boolean }) | null => {
   } catch {
     return null;
   }
-  const docRaw = docParts.join("/");
-  const implicitDoc = docRaw.length === 0;
-  let doc = "plan";
-  if (docRaw) {
-    try {
-      doc = decodeURIComponent(docRaw);
-    } catch {
-      return null;
-    }
-    if (!doc) return null;
-  }
-  return { prdId, doc, implicitDoc };
+  const hasExtra = extraParts.some((part) => part.length > 0);
+  return { prdId, hasExtra };
 };
 
-const setHash = (prdId: string, doc: DocKind) => {
-  window.location.hash = `#/${encodeURIComponent(prdId)}/${encodeURIComponent(doc)}`;
+const setHash = (prdId: string) => {
+  window.location.hash = `#/${encodeURIComponent(prdId)}`;
 };
 
 const ensureSelection = () => {
@@ -84,11 +74,9 @@ const ensureSelection = () => {
   if (parsed) {
     const match = state.prds.find((prd) => prd.id === parsed.prdId);
     if (match) {
-      let doc = parsed.doc;
-      if (doc !== "plan" && !match.docs.includes(doc)) doc = "plan";
-      state.selection = { prdId: match.id, doc };
-      if (doc !== parsed.doc || parsed.implicitDoc) {
-        setHash(match.id, doc);
+      state.selection = { prdId: match.id };
+      if (parsed.hasExtra) {
+        setHash(match.id);
         updatedHash = true;
       }
       return updatedHash;
@@ -100,9 +88,9 @@ const ensureSelection = () => {
     state.selection = null;
     return updatedHash;
   }
-  const fallback: Selection = { prdId: first.id, doc: "plan" };
+  const fallback: Selection = { prdId: first.id };
   state.selection = fallback;
-  setHash(fallback.prdId, fallback.doc);
+  setHash(fallback.prdId);
   updatedHash = true;
   return updatedHash;
 };
@@ -115,8 +103,8 @@ const renderEmpty = (message: string) => {
   layout.contentBody.append(note);
 };
 
-const setContentMode = (doc: DocKind | null) => {
-  if (doc === "plan") {
+const setContentMode = (hasSelection: boolean) => {
+  if (hasSelection) {
     layout.content.classList.add("app-content--plan");
   } else {
     layout.content.classList.remove("app-content--plan");
@@ -163,27 +151,23 @@ const updateMobileSelect = () => {
       ? `@${gitBranch}`
       : "";
   for (const prd of state.prds) {
-    const docs: DocKind[] = ["plan", ...prd.docs];
     const progress = normalizeProgress(prd.progress);
     const progressEmoji = progressToEmoji(progress);
-
-    for (const doc of docs) {
-      const option = document.createElement("option");
-      option.value = `${encodeURIComponent(prd.id)}|${encodeURIComponent(doc)}`;
-      option.textContent = rootPrefix
-        ? `${rootPrefix} / ${prd.label} ${progressEmoji} / ${doc}`
-        : `${prd.label} ${progressEmoji} / ${doc}`;
-      if (state.selection && state.selection.prdId === prd.id && state.selection.doc === doc) {
-        option.selected = true;
-      }
-      select.append(option);
+    const option = document.createElement("option");
+    option.value = encodeURIComponent(prd.id);
+    option.textContent = rootPrefix
+      ? `${rootPrefix} / ${prd.label} ${progressEmoji}`
+      : `${prd.label} ${progressEmoji}`;
+    if (state.selection && state.selection.prdId === prd.id) {
+      option.selected = true;
     }
+    select.append(option);
   }
 };
 
 layout.mobileSelect.addEventListener("change", (event) => {
   const target = event.target as HTMLSelectElement;
-  const [prdIdRaw, docRaw] = target.value.split("|");
+  const prdIdRaw = target.value;
   if (!prdIdRaw) return;
   let prdId = "";
   try {
@@ -191,15 +175,8 @@ layout.mobileSelect.addEventListener("change", (event) => {
   } catch {
     return;
   }
-  if (!docRaw) return;
-  let doc = "";
-  try {
-    doc = decodeURIComponent(docRaw);
-  } catch {
-    return;
-  }
-  if (prdId && doc) {
-    setHash(prdId, doc);
+  if (prdId) {
+    setHash(prdId);
   }
 });
 
@@ -210,8 +187,8 @@ const refreshSidebar = () => {
     state.prds,
     state.selection,
     state.sidebarCollapsed,
-    (prdId, doc) => {
-      setHash(prdId, doc);
+    (prdId) => {
+      setHash(prdId);
     },
     () => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
@@ -224,32 +201,27 @@ const refreshSidebar = () => {
 
 const loadSelection = async () => {
   if (!state.selection) {
-    setContentMode(null);
+    setContentMode(false);
     renderEmpty("No PRDs found in .tasks");
     return;
   }
 
-  const { prdId, doc } = state.selection;
-  setContentMode(doc);
+  const { prdId } = state.selection;
+  setContentMode(true);
   renderContent("Loading…");
 
   try {
-    if (doc === "plan") {
-      const payload = await fetchPlan(prdId);
-      layout.contentBody.innerHTML = "";
-      const planContainer = document.createElement("div");
-      planContainer.className = "plan-container";
-      layout.contentBody.append(planContainer);
-      state.lastPlan = {
-        prdId,
-        planMarkdown: payload.planMarkdown,
-        planJsonText: payload.planJsonText,
-      };
-      await renderPlanView(planContainer, payload.planMarkdown, payload.planJsonText, currentTheme);
-      return;
-    }
-    const payload = await fetchMarkdown(prdId, doc);
-    renderContent(payload.markdown);
+    const payload = await fetchPlan(prdId);
+    layout.contentBody.innerHTML = "";
+    const planContainer = document.createElement("div");
+    planContainer.className = "plan-container";
+    layout.contentBody.append(planContainer);
+    state.lastPlan = {
+      prdId,
+      planMarkdown: payload.planMarkdown,
+      planJsonText: payload.planJsonText,
+    };
+    await renderPlanView(planContainer, payload.planMarkdown, payload.planJsonText, currentTheme);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load content";
     renderError(message);

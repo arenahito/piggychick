@@ -1,14 +1,11 @@
 import type { PrdListMeta, PrdSummary } from "../api";
 import { normalizeProgress, progressToEmoji, progressToLabel } from "../progress";
 
-export type DocKind = "plan" | string;
-
 export type Selection = {
   prdId: string;
-  doc: DocKind;
 };
 
-type SelectHandler = (prdId: string, doc: DocKind) => void;
+type SelectHandler = (prdId: string) => void;
 
 export const renderSidebar = (
   container: HTMLElement,
@@ -145,43 +142,27 @@ export const renderSidebar = (
   }
 
   for (const prd of prds) {
-    const group = document.createElement("div");
-    group.className = "sidebar-group";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sidebar-prd";
+    if (selection && selection.prdId === prd.id) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-current", "true");
+    }
+    button.addEventListener("click", () => onSelect(prd.id));
 
-    const titleRow = document.createElement("div");
-    titleRow.className = "sidebar-group-title-row";
-
-    const title = document.createElement("div");
-    title.className = "sidebar-group-title";
+    const title = document.createElement("span");
+    title.className = "sidebar-prd-label";
     title.textContent = prd.label;
 
-    const status = document.createElement("div");
-    status.className = "sidebar-group-title-status";
+    const status = document.createElement("span");
+    status.className = "sidebar-prd-status";
     const progress = normalizeProgress(prd.progress);
     status.textContent = progressToEmoji(progress);
     status.setAttribute("role", "img");
     status.setAttribute("aria-label", progressToLabel(progress));
 
-    titleRow.append(title, status);
-
-    const items = document.createElement("div");
-    items.className = "sidebar-items";
-
-    const docs: DocKind[] = ["plan", ...prd.docs];
-
-    for (const doc of docs) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "sidebar-item";
-      button.textContent = doc;
-      if (selection && selection.prdId === prd.id && selection.doc === doc) {
-        button.classList.add("is-active");
-      }
-      button.addEventListener("click", () => onSelect(prd.id, doc));
-      items.append(button);
-    }
-
-    group.append(titleRow, items);
-    container.append(group);
+    button.append(title, status);
+    container.append(button);
   }
 };
