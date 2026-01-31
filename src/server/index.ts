@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { startServer } from "./app";
+import { resolveTasksRootFromEnv } from "../shared/tasks-root";
 
-const tasksRoot = process.argv[2] ?? ".tasks";
+const tasksRoot = resolveTasksRootFromEnv(".tasks");
 const distRoot = resolve("dist");
 
 await startServer({ tasksRoot, distRoot });

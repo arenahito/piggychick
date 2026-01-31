@@ -25,18 +25,10 @@ const ensureBun = () => {
   }
 };
 
-const resolveTasksRoot = () => {
-  const arg = process.argv[2];
-  if (arg) {
-    return resolve(arg);
-  }
-  return resolve(process.cwd(), ".tasks");
-};
-
 const runWithBun = async () => {
   ensureDistRoot(distRoot);
   const { runCli } = await import("../src/cli.ts");
-  await runCli({ tasksRoot: resolveTasksRoot() });
+  await runCli();
 };
 
 const runWithNode = () => {

@@ -2,17 +2,11 @@ import { lstatSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startServer } from "./server/app";
+import { resolveTasksRootFromEnv } from "./shared/tasks-root";
 
 const resolvePackageRoot = () => {
   const currentFile = fileURLToPath(import.meta.url);
   return resolve(dirname(currentFile), "..");
-};
-
-const resolveTasksRoot = (arg?: string) => {
-  if (arg) {
-    return resolve(arg);
-  }
-  return resolve(process.cwd(), ".tasks");
 };
 
 const assertDistRoot = (distRoot: string) => {
@@ -25,7 +19,7 @@ const assertDistRoot = (distRoot: string) => {
 };
 
 export const runCli = async (overrides: { tasksRoot?: string } = {}) => {
-  const tasksRoot = overrides.tasksRoot ?? resolveTasksRoot(process.argv[2]);
+  const tasksRoot = overrides.tasksRoot ?? resolveTasksRootFromEnv(resolve(process.cwd(), ".tasks"));
   const distRoot = resolve(resolvePackageRoot(), "dist");
   assertDistRoot(distRoot);
   await startServer({ tasksRoot, distRoot });
