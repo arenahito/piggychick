@@ -29,6 +29,8 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Keep path safety checks anchored to realpath boundaries even when roots are configurable.
 - Use a single startup path and toggle behavior differences via environment variables.
 - Validate packaged assets at startup and include the effective path in error messages.
+- Standardize server env vars to `PGCH_*` and remove legacy names from code and UI.
+- Fix `dist` resolution to the packaged `dist/` and avoid override env vars or wrapper injection.
 
 ## Notes for changes
 - If you change file outputs or asset names, update the `dev:client` and `build:client` scripts.
