@@ -15,7 +15,7 @@
     {
       "id": "4e8874fe-4a79-4fe7-b882-38933b51f215",
       "title": "F1: Add client utility tests (non-DOM)",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["1f1aca93-9f65-42a0-8cc6-d98f47fd582a"]
     },
     {

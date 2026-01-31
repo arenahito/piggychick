@@ -10,3 +10,8 @@
 - Path traversal tests against the Bun server are more reliable on Windows when using a drive-prefixed absolute path (e.g., `/C:/...`) instead of `../` segments, which may be normalized away by the URL parser.
 - Git branch detection paths in `listPrds` can be exercised by creating a `.git` directory with a HEAD file or a `.git` file pointing to a missing gitdir; both are useful for covering branch and error handling logic.
 - Symlink/hardlink exclusion tests should be written as best-effort because CI environments may disallow link creation; tests should skip gracefully when link operations fail.
+
+## F1: Add client utility tests (non-DOM)
+
+- Client API helpers are easiest to test by swapping `globalThis.fetch` and restoring it after each test to avoid leaking state between cases.
+- `buildPlanGraph` assertions should avoid matching Mermaid syntax characters directly; checking for absence of raw labels (e.g., `Task <A>`) is a safer way to confirm escaping.
