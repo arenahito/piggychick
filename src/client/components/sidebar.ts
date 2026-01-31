@@ -28,15 +28,108 @@ export const renderSidebar = (
     const trimmedHeader = headerText.trim();
     const displayHeader = trimmedHeader || "PRDs";
     if (displayHeader) {
-      const rootHeader = document.createElement("button");
-      rootHeader.type = "button";
+      const labelText = rootMeta.rootLabel?.trim() ?? "";
+      const branchText = rootMeta.gitBranch?.trim() ?? "";
+      const rootHeader = document.createElement("div");
       rootHeader.className = "sidebar-root";
-      rootHeader.textContent = displayHeader;
-      rootHeader.setAttribute("aria-expanded", String(!shouldCollapse));
+      const toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.className = "sidebar-root-toggle";
+      if (labelText) {
+        const label = document.createElement("span");
+        label.className = "sidebar-root-label";
+        label.textContent = labelText;
+        toggleButton.append(label);
+      }
+      if (branchText) {
+        const branch = document.createElement("span");
+        branch.className = "sidebar-root-branch";
+        branch.textContent = labelText ? ` @${branchText}` : `@${branchText}`;
+        toggleButton.append(branch);
+      }
+      if (!labelText && !branchText) {
+        const fallback = document.createElement("span");
+        fallback.className = "sidebar-root-label";
+        fallback.textContent = displayHeader;
+        toggleButton.append(fallback);
+      }
+      toggleButton.setAttribute("aria-expanded", String(!shouldCollapse));
       const toggleLabel = shouldCollapse ? "Show PRDs" : "Hide PRDs";
-      rootHeader.setAttribute("title", toggleLabel);
-      rootHeader.setAttribute("aria-label", `${displayHeader} ${toggleLabel}`);
-      rootHeader.addEventListener("click", () => onToggleCollapse());
+      toggleButton.setAttribute("title", displayHeader);
+      toggleButton.setAttribute("aria-label", `${displayHeader} ${toggleLabel}`);
+      toggleButton.addEventListener("click", () => onToggleCollapse());
+      rootHeader.append(toggleButton);
+
+      const rootPath = rootMeta.rootPath?.trim() ?? "";
+      if (rootPath) {
+        const copyButton = document.createElement("button");
+        copyButton.type = "button";
+        copyButton.className = "sidebar-root-copy";
+        const idleLabel = "COPY";
+        copyButton.textContent = idleLabel;
+        copyButton.setAttribute("title", "Copy path");
+        copyButton.setAttribute("aria-label", "Copy path");
+        copyButton.setAttribute("aria-live", "polite");
+        copyButton.setAttribute("aria-atomic", "true");
+        copyButton.dataset.state = "idle";
+        let resetHandle: number | null = null;
+        const setCopyState = (state: "idle" | "copied" | "error") => {
+          if (resetHandle !== null) {
+            window.clearTimeout(resetHandle);
+            resetHandle = null;
+          }
+          copyButton.dataset.state = state;
+          if (state === "copied") {
+            copyButton.textContent = "COPIED";
+            copyButton.setAttribute("title", "Copied");
+            copyButton.setAttribute("aria-label", "Copied");
+          } else if (state === "error") {
+            copyButton.textContent = "FAILED";
+            copyButton.setAttribute("title", "Copy failed");
+            copyButton.setAttribute("aria-label", "Copy failed");
+          } else {
+            copyButton.textContent = idleLabel;
+            copyButton.setAttribute("title", "Copy path");
+            copyButton.setAttribute("aria-label", "Copy path");
+          }
+          if (state !== "idle") {
+            resetHandle = window.setTimeout(() => setCopyState("idle"), 1500);
+          }
+        };
+        const copyWithFallback = async (text: string) => {
+          if (navigator.clipboard?.writeText) {
+            try {
+              await navigator.clipboard.writeText(text);
+              return true;
+            } catch {
+              // continue to fallback
+            }
+          }
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("readonly", "true");
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.append(textarea);
+          textarea.focus();
+          textarea.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } finally {
+            textarea.remove();
+          }
+          return ok;
+        };
+        copyButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          void copyWithFallback(rootPath)
+            .then((ok) => setCopyState(ok ? "copied" : "error"))
+            .catch(() => setCopyState("error"));
+        });
+        rootHeader.append(copyButton);
+      }
+
       container.append(rootHeader);
     }
   }

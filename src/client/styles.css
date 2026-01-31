@@ -98,35 +98,80 @@ select {
 }
 
 .sidebar-root {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--md-h2);
-  background: transparent;
-  border: none;
-  appearance: none;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 8px 4px 6px;
   letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  text-align: left;
-  cursor: pointer;
-  text-decoration: none;
+  color: var(--md-h2);
   border-bottom: 1px solid var(--md-h2);
 }
 
-.sidebar-root:hover,
-.sidebar-root:focus-visible {
+.sidebar-root-branch {
+  color: var(--muted-strong);
+}
+
+.sidebar-root-toggle {
+  font-size: 15px;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: none;
+  appearance: none;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-root-copy {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.sidebar-root-copy[data-state="copied"] {
+  color: var(--md-code);
+  border-color: rgba(166, 226, 46, 0.6);
+}
+
+.sidebar-root-copy[data-state="error"] {
+  color: var(--md-h1);
+  border-color: rgba(209, 109, 138, 0.6);
+}
+
+.sidebar-root:hover {
   color: var(--md-h2-hover);
   border-bottom-color: var(--md-h2-hover);
 }
 
-.sidebar-root:focus-visible {
+.sidebar-root:hover .sidebar-root-copy,
+.sidebar-root:focus-within .sidebar-root-copy {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-root:hover .sidebar-root-toggle,
+.sidebar-root:focus-within .sidebar-root-toggle {
+  color: var(--md-h2-hover);
+}
+
+.sidebar-root-toggle:focus-visible {
   outline: 2px solid rgba(124, 196, 255, 0.6);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .sidebar-group-title {

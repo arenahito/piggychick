@@ -10,6 +10,7 @@ export type PrdSummary = {
 export type PrdListMeta = {
   rootLabel: string;
   gitBranch: string | null;
+  rootPath: string;
 };
 
 export type PrdListPayload = {

@@ -14,6 +14,7 @@ export type PrdProgress = "not_started" | "in_progress" | "done";
 export type PrdListMeta = {
   rootLabel: string;
   gitBranch: string | null;
+  rootPath: string;
 };
 
 export type PrdListPayload = {
@@ -342,7 +343,7 @@ export const listPrds = async (root: string): Promise<PrdListPayload> => {
   }
 
   return {
-    meta: { rootLabel, gitBranch },
+    meta: { rootLabel, gitBranch, rootPath: projectRoot },
     prds: results.sort((a, b) => a.label.localeCompare(b.label))
   };
 };
