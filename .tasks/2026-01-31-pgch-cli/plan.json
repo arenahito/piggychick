@@ -11,7 +11,7 @@
     {
       "id": "4f8a79c6-0c41-4f7e-a98c-f4f5d8f9e13b",
       "title": "X1: Add CLI bin that launches server from packaged assets",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["7f5fbf24-1a1e-4b29-9d8d-faa6f0a8b8a4"]
     },
     {
