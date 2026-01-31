@@ -1,12 +1,39 @@
 # PiggyChick Server
 
-PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It renders GitHub-flavored Markdown with Mermaid diagrams and shows a dependency graph for `plan.json`, with a dark-only theme.
+PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It renders GitHub-flavored Markdown with Mermaid diagrams and shows a dependency graph for `plan.json`, with a dark-by-default theme and a light toggle that persists.
 
 ## Setup
 
 ```bash
 bun install
 ```
+
+## CLI Usage
+
+Run without installing:
+
+```bash
+bunx @arenahito/piggychick
+# or
+npx @arenahito/piggychick
+```
+
+Install globally and use the `pgch` alias:
+
+```bash
+bun add -g @arenahito/piggychick
+pgch
+```
+
+Install locally and run via bunx:
+
+```bash
+bun add @arenahito/piggychick
+bunx pgch
+```
+
+The CLI reads `.tasks` from your current working directory by default. Pass a path to a `.tasks` directory as the first argument to override it.
+Bun is required at runtime.
 
 ## Development
 
@@ -48,6 +75,6 @@ Only safe Markdown filenames are surfaced (no path separators, reserved device n
 
 - **Sidebar tree**: Select a PRD and one of its documents (`plan` plus any extra Markdown files).
 - **Plan view**: Split pane with Markdown on the left and a Mermaid dependency graph on the right.
-- **Theme**: Dark only.
+- **Theme**: Dark by default with a persistent light toggle.
 - **No extra docs**: PRDs without additional Markdown files show only `plan`.
 - **Refresh**: Adding/removing docs requires a page reload to refresh the list.

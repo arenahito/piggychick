@@ -1,14 +1,28 @@
 {
-  "name": "piggychick",
-  "private": true,
+  "name": "@arenahito/piggychick",
+  "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "pgch": "bin/pgch.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src/cli.ts",
+    "src/server"
+  ],
   "scripts": {
     "dev": "concurrently \"bun --watch src/server/index.ts ./example/.tasks\" \"bun run dev:client\"",
     "dev:client": "mkdir -p dist dist/assets && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css && bun build --watch src/client/main.ts --outdir dist/assets --target browser",
     "start": "bun src/server/index.ts ./.tasks",
     "build": "bun run build:client",
     "build:client": "mkdir -p dist dist/assets && bun build src/client/main.ts --outdir dist/assets --target browser && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css",
-    "lint": "oxlint . --ignore-path .oxlintignore"
+    "lint": "oxlint . --ignore-path .oxlintignore",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "d3-transition": "^3.0.1",

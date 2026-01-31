@@ -17,7 +17,7 @@
     {
       "id": "6b6a8e83-86a1-439a-9f08-7612d6a399e6",
       "title": "D1: Package metadata and documentation updates",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["4f8a79c6-0c41-4f7e-a98c-f4f5d8f9e13b"]
     }
   ]
