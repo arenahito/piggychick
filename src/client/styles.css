@@ -109,12 +109,11 @@ select {
 }
 
 .sidebar-root-branch {
-  color: var(--muted-strong);
+  color: var(--muted);
 }
 
 .sidebar-root-toggle {
   font-size: 15px;
-  font-weight: 600;
   color: inherit;
   background: transparent;
   border: none;
@@ -122,11 +121,53 @@ select {
   padding: 0;
   flex: 1;
   min-width: 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-root-toggle-icon {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid currentColor;
+  margin-right: 8px;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+  vertical-align: middle;
+}
+
+.sidebar-root-toggle[aria-expanded="false"] .sidebar-root-toggle-icon {
+  transform: rotate(0deg);
+}
+
+.sidebar-root-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-root-label,
+.sidebar-root-branch {
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
-  cursor: pointer;
+}
+
+.sidebar-root-label {
+  font-weight: 600;
+}
+
+.sidebar-root-branch {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .sidebar-root-copy {

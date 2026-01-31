@@ -35,24 +35,26 @@ export const renderSidebar = (
       const toggleButton = document.createElement("button");
       toggleButton.type = "button";
       toggleButton.className = "sidebar-root-toggle";
-      if (labelText) {
+      const toggleIcon = document.createElement("span");
+      toggleIcon.className = "sidebar-root-toggle-icon";
+      toggleIcon.setAttribute("aria-hidden", "true");
+      toggleButton.append(toggleIcon);
+      const textWrap = document.createElement("span");
+      textWrap.className = "sidebar-root-text";
+      const labelLine = labelText || (branchText ? "PRDs" : displayHeader);
+      if (labelLine) {
         const label = document.createElement("span");
         label.className = "sidebar-root-label";
-        label.textContent = labelText;
-        toggleButton.append(label);
+        label.textContent = labelLine;
+        textWrap.append(label);
       }
       if (branchText) {
         const branch = document.createElement("span");
         branch.className = "sidebar-root-branch";
-        branch.textContent = labelText ? ` @${branchText}` : `@${branchText}`;
-        toggleButton.append(branch);
+        branch.textContent = branchText;
+        textWrap.append(branch);
       }
-      if (!labelText && !branchText) {
-        const fallback = document.createElement("span");
-        fallback.className = "sidebar-root-label";
-        fallback.textContent = displayHeader;
-        toggleButton.append(fallback);
-      }
+      toggleButton.append(textWrap);
       toggleButton.setAttribute("aria-expanded", String(!shouldCollapse));
       const toggleLabel = shouldCollapse ? "Show PRDs" : "Hide PRDs";
       toggleButton.setAttribute("title", displayHeader);
