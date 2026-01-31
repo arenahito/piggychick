@@ -9,7 +9,7 @@
     {
       "id": "a9140c46-3d6c-430c-8957-5ce53276fc4c",
       "title": "B1: Add server/shared unit tests",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["1f1aca93-9f65-42a0-8cc6-d98f47fd582a"]
     },
     {
