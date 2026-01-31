@@ -17,7 +17,7 @@
     "src/server"
   ],
   "scripts": {
-    "dev": "concurrently \"cross-env PGCH_TASKS_ROOT=./example/.tasks bun --watch src/server/index.ts\" \"bun run dev:client\"",
+    "dev": "concurrently \"bun --watch src/server/index.ts\" \"bun run dev:client\"",
     "dev:client": "mkdir -p dist dist/assets && cp src/client/index.html dist/index.html && cp node_modules/github-markdown-css/github-markdown.css dist/markdown.css && bun build --watch src/client/main.ts --outdir dist/assets --target browser",
     "start": "bun src/server/index.ts",
     "build": "bun run build:client",
