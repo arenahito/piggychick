@@ -13,6 +13,7 @@
     "dist",
     "bin",
     "src/cli.ts",
+    "src/shared",
     "src/server"
   ],
   "scripts": {
