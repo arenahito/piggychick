@@ -9,3 +9,9 @@ Centralizing tasks root resolution into `src/shared/tasks-root.ts` prevents entr
 ### Gotcha: Absolute paths still go through resolve
 
 Using `resolve(process.cwd(), value)` keeps relative values anchored to the current working directory while leaving absolute values unchanged. This lets the helper accept either form without extra branching.
+
+## B2: Update package scripts for env-based tasks root
+
+### Pattern: Cross-platform env vars in npm scripts
+
+Switching the `dev` script to `cross-env PGCH_TASKS_ROOT=...` keeps the same behavior on Windows shells, which do not support the POSIX-style `VAR=value` prefix.

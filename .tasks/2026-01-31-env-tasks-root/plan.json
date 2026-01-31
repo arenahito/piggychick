@@ -11,7 +11,7 @@
     {
       "id": "52150305-5a19-46cb-84af-44758df44002",
       "title": "B2: Update package scripts for env-based tasks root",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["302d8853-2d26-4382-9e34-072434f0be72"]
     },
     {
