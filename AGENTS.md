@@ -62,6 +62,13 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 
 - Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0`.
 - Add `role="img"` with `aria-label` for emoji indicators.
+- Render PRD markdown as separate blocks (plan first) and include a small header for each non-plan section.
+
+## Client navigation
+
+- Canonicalize PRD hashes to `#/prdId` and ignore legacy extra segments.
+- Normalize doc IDs (trim, strip `.md`, case-insensitive de-duplication) before sorting with `Intl.Collator("en", { sensitivity: "base", numeric: true })`.
+- Guard async PRD loads with a request token so stale responses do not overwrite the current selection.
 
 ## Git metadata
 
