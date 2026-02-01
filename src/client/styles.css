@@ -1020,6 +1020,7 @@ select {
   padding: 4px 12px;
   border-radius: 999px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .plan-doc-link:hover,
