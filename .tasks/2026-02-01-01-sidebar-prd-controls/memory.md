@@ -14,3 +14,8 @@
 - Filtering incomplete PRDs should use `normalizeProgress` so missing or invalid progress still counts as incomplete.
 - When a filter hides the active selection in the mobile selector, a disabled placeholder option prevents the UI from implying a different active PRD.
 - Pruning stored per-root UI state to known root IDs avoids leaking stale localStorage entries after root changes.
+
+## F3: Style new sidebar controls
+
+- Keep emoji-only buttons using the base pill button style but override letter spacing and text transform to avoid distorted emoji rendering.
+- Pair a hidden checkbox with a visible switch track to preserve accessibility while custom-styling the toggle UI.

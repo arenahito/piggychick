@@ -25,7 +25,7 @@
       "id": "5318e89d-5dff-4502-b321-b051c38dcc3c",
       "title": "F3: Style new sidebar controls",
       "category": "frontend",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["cb07712b-943a-4d76-84a7-2a59485a1d9d"]
     }
   ]
