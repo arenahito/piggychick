@@ -22,8 +22,8 @@ describe("startServerWithConfig", () => {
 
     try {
       const text = await readFile(configPath, "utf8");
-      expect(text).toContain("\"tasksDir\": \".tasks\"");
-      expect(text).toContain("\"roots\": []");
+      expect(text).toContain('"tasksDir": ".tasks"');
+      expect(text).toContain('"roots": []');
     } finally {
       await server.stop();
       await removeTempDir(tempRoot);

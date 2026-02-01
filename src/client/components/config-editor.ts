@@ -216,7 +216,7 @@ const tokenizeJsonc = (input: string): Token[] => {
       continue;
     }
 
-    if (char === "\"" || char === "'") {
+    if (char === '"' || char === "'") {
       const quote = char;
       const start = i;
       i += 1;
@@ -238,9 +238,7 @@ const tokenizeJsonc = (input: string): Token[] => {
     }
 
     if ((char === "-" && /[0-9]/.test(next ?? "")) || /[0-9]/.test(char)) {
-      const match = input
-        .slice(i)
-        .match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+      const match = input.slice(i).match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
       if (match) {
         push("number", match[0]);
         i += match[0].length;
@@ -265,7 +263,14 @@ const tokenizeJsonc = (input: string): Token[] => {
       continue;
     }
 
-    if (char === "{" || char === "}" || char === "[" || char === "]" || char === ":" || char === ",") {
+    if (
+      char === "{" ||
+      char === "}" ||
+      char === "[" ||
+      char === "]" ||
+      char === ":" ||
+      char === ","
+    ) {
       push("punct", char);
       i += 1;
       continue;
