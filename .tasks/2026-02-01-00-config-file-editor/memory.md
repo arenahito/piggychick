@@ -11,3 +11,9 @@
 - Guard async save flows with a request token or active-handle checks to avoid updating a closed editor.
 - Disable the Settings button while the editor is open to prevent accidental reloads that drop unsaved edits.
 - Clear toast timers on close so stale timeouts do not affect the next editor session.
+
+## F2: Implement JSONC highlighting, toast, and editor styles
+
+- Match wrap behavior between textarea and highlight layer to keep scroll sync accurate (no-wrap + pre formatting).
+- Use textarea-normalized text for highlighting to avoid CRLF/line-ending mismatches.
+- Align scrollbar gutters and widths on overlay layers to prevent right-edge drift.

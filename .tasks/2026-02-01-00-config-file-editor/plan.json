@@ -18,7 +18,7 @@
       "id": "0e081d56-b1d1-467c-bbc7-a56666136057",
       "title": "F2: Implement JSONC highlighting, toast, and editor styles",
       "category": "frontend",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["49b7af1e-026f-4ff2-90b7-0e1cc603e064"]
     }
   ]

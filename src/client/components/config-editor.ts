@@ -46,17 +46,49 @@ export const renderConfigEditor = (
   const body = document.createElement("div");
   body.className = "config-editor-body";
 
+  const surface = document.createElement("div");
+  surface.className = "config-editor-surface";
+
+  const highlight = document.createElement("pre");
+  highlight.className = "config-editor-highlight";
+  highlight.setAttribute("aria-hidden", "true");
+
   const textarea = document.createElement("textarea");
   textarea.className = "config-editor-input";
   textarea.value = options.text;
+  textarea.wrap = "off";
   textarea.spellcheck = false;
   textarea.setAttribute("aria-label", "Config file");
+
+  let rafHandle: number | null = null;
+  const scheduleHighlight = () => {
+    if (rafHandle !== null) return;
+    rafHandle = window.requestAnimationFrame(() => {
+      rafHandle = null;
+      highlight.innerHTML = renderHighlight(textarea.value);
+      syncScroll();
+    });
+  };
+
+  const syncScroll = () => {
+    highlight.scrollTop = textarea.scrollTop;
+    highlight.scrollLeft = textarea.scrollLeft;
+  };
+
   textarea.addEventListener("input", (event) => {
     const target = event.target as HTMLTextAreaElement;
     options.onChange(target.value);
+    scheduleHighlight();
+  });
+  textarea.addEventListener("scroll", () => {
+    syncScroll();
   });
 
-  body.append(textarea);
+  highlight.innerHTML = renderHighlight(textarea.value);
+  syncScroll();
+
+  surface.append(highlight, textarea);
+  body.append(surface);
 
   const footer = document.createElement("div");
   footer.className = "config-editor-footer";
@@ -107,6 +139,8 @@ export const renderConfigEditor = (
 
   const setText = (text: string) => {
     textarea.value = text;
+    highlight.innerHTML = renderHighlight(textarea.value);
+    syncScroll();
   };
 
   setSaving(options.isSaving);
@@ -117,6 +151,131 @@ export const renderConfigEditor = (
     setText,
     focus: () => textarea.focus(),
   };
+};
+
+const renderHighlight = (text: string) => {
+  const tokens = tokenizeJsonc(text);
+  return tokens
+    .map((token) => {
+      const escaped = escapeHtml(token.value);
+      if (token.type === "plain") {
+        return escaped;
+      }
+      return `<span class="config-token config-token-${token.type}">${escaped}</span>`;
+    })
+    .join("");
+};
+
+const escapeHtml = (value: string) => {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
+type Token = {
+  type: "plain" | "comment" | "string" | "number" | "boolean" | "null" | "punct";
+  value: string;
+};
+
+const tokenizeJsonc = (input: string): Token[] => {
+  const tokens: Token[] = [];
+  const push = (type: Token["type"], value: string) => {
+    if (!value) return;
+    tokens.push({ type, value });
+  };
+
+  let i = 0;
+  while (i < input.length) {
+    const char = input[i];
+    const next = input[i + 1];
+
+    if (char === "/" && next === "/") {
+      const start = i;
+      i += 2;
+      while (i < input.length && input[i] !== "\n") {
+        i += 1;
+      }
+      push("comment", input.slice(start, i));
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      const start = i;
+      i += 2;
+      while (i < input.length) {
+        if (input[i] === "*" && input[i + 1] === "/") {
+          i += 2;
+          break;
+        }
+        i += 1;
+      }
+      push("comment", input.slice(start, i));
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      const quote = char;
+      const start = i;
+      i += 1;
+      let escaped = false;
+      while (i < input.length) {
+        const current = input[i];
+        if (escaped) {
+          escaped = false;
+        } else if (current === "\\") {
+          escaped = true;
+        } else if (current === quote) {
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      push("string", input.slice(start, i));
+      continue;
+    }
+
+    if ((char === "-" && /[0-9]/.test(next ?? "")) || /[0-9]/.test(char)) {
+      const match = input
+        .slice(i)
+        .match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+      if (match) {
+        push("number", match[0]);
+        i += match[0].length;
+        continue;
+      }
+    }
+
+    if (/[A-Za-z]/.test(char)) {
+      const start = i;
+      i += 1;
+      while (i < input.length && /[A-Za-z0-9_]/.test(input[i])) {
+        i += 1;
+      }
+      const word = input.slice(start, i);
+      if (word === "true" || word === "false") {
+        push("boolean", word);
+      } else if (word === "null") {
+        push("null", word);
+      } else {
+        push("plain", word);
+      }
+      continue;
+    }
+
+    if (char === "{" || char === "}" || char === "[" || char === "]" || char === ":" || char === ",") {
+      push("punct", char);
+      i += 1;
+      continue;
+    }
+
+    push("plain", char);
+    i += 1;
+  }
+
+  return tokens;
 };
 
 export const renderConfigEditorError = (
