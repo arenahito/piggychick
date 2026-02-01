@@ -42,14 +42,13 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 ## Environment variables and scripts
 
 - Standardize server env vars to `PGCH_*` and remove legacy names from code and UI.
-- Resolve `PGCH_TASKS_ROOT` via `resolve(process.cwd(), value)` so relative/absolute inputs behave consistently.
-- Use `cross-env` in scripts that set `PGCH_TASKS_ROOT` to keep Windows shells working.
-- Document `PGCH_TASKS_ROOT` with both POSIX and PowerShell examples.
+- Do not use env overrides for tasks roots; use the config file at `~/.config/piggychick/config.jsonc`.
+- Config schema: global `tasksDir` (defaults to `.tasks`) plus `roots` entries with optional per-root `tasksDir` overrides.
 
 ## `.tasks` root resolution
 
-- Centralize tasks root resolution in the shared helper.
-- Keep the fallback unchanged when `PGCH_TASKS_ROOT` is unset.
+- Centralize tasks root resolution in shared config helpers.
+- Default `tasksDir` to `.tasks`, and allow per-root overrides to win when present.
 - Anchor path safety checks to realpath boundaries even when roots are configurable.
 
 ## PRD listing and progress
