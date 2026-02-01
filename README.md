@@ -32,7 +32,7 @@ bun add @arenahito/piggychick
 bunx pgch
 ```
 
-The CLI reads project roots from `~/.config/piggychick/config.jsonc`. Use `pgch add` to add a project root (uses the current working directory when omitted), and `pgch remove` to delete it. Bun is required at runtime.
+The CLI reads project roots from `~/.config/piggychick/config.jsonc`. Use `pgch add` to add a project root and `pgch remove` to delete it (both use the current working directory when omitted). Bun is required at runtime.
 
 ```bash
 pgch config   # show config path
