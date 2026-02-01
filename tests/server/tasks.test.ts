@@ -2,7 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { link, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createPrd, createTempDir, removeTempDir } from "../helpers/fs";
-import { listPrds, readMarkdown, readPlan, TasksError } from "../../src/server/tasks";
+import {
+  listPrds,
+  listRoots,
+  readMarkdown,
+  readMarkdownByRoot,
+  readPlan,
+  readPlanByRoot,
+  TasksError,
+} from "../../src/server/tasks";
 
 const withTempRoot = async (fn: (root: string) => Promise<void>) => {
   const root = await createTempDir("pgch-tasks");
@@ -10,6 +18,27 @@ const withTempRoot = async (fn: (root: string) => Promise<void>) => {
     await fn(root);
   } finally {
     await removeTempDir(root);
+  }
+};
+
+const withTempConfig = async (
+  fn: (options: { projectRoot: string; tasksRoot: string; configPath: string }) => Promise<void>,
+) => {
+  const projectRoot = await createTempDir("pgch-root");
+  const tasksRoot = join(projectRoot, ".tasks");
+  await mkdir(tasksRoot, { recursive: true });
+  const configDir = await createTempDir("pgch-config");
+  const configPath = join(configDir, "config.jsonc");
+  await writeFile(
+    configPath,
+    JSON.stringify({ tasksDir: ".tasks", roots: [{ path: projectRoot }] }, null, 2),
+    "utf8",
+  );
+  try {
+    await fn({ projectRoot, tasksRoot, configPath });
+  } finally {
+    await removeTempDir(projectRoot);
+    await removeTempDir(configDir);
   }
 };
 
@@ -161,6 +190,90 @@ describe("listPrds", () => {
     } finally {
       await removeTempDir(projectRoot);
     }
+  });
+});
+
+describe("listRoots", () => {
+  test("lists roots with PRDs", async () => {
+    await withTempConfig(async ({ tasksRoot, configPath }) => {
+      await createPrd(tasksRoot, "alpha");
+      const payload = await listRoots(configPath);
+      expect(payload.roots[0]?.prds[0]?.id).toBe("alpha");
+      expect(payload.roots[0]?.id).toBeTruthy();
+    });
+  });
+
+  test("uses per-root tasksDir override", async () => {
+    const projectRoot = await createTempDir("pgch-root");
+    const altRoot = await createTempDir("pgch-root-alt");
+    const tasksRoot = join(projectRoot, ".tasks");
+    const altTasksRoot = join(altRoot, ".tasks-prd");
+    await mkdir(tasksRoot, { recursive: true });
+    await mkdir(altTasksRoot, { recursive: true });
+    await createPrd(tasksRoot, "alpha");
+    await createPrd(altTasksRoot, "beta");
+    const configDir = await createTempDir("pgch-config");
+    const configPath = join(configDir, "config.jsonc");
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          tasksDir: ".tasks",
+          roots: [{ path: projectRoot }, { path: altRoot, tasksDir: ".tasks-prd" }],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    try {
+      const payload = await listRoots(configPath);
+      const prdIds = payload.roots.flatMap((root) => root.prds.map((prd) => prd.id));
+      expect(prdIds).toEqual(["alpha", "beta"]);
+    } finally {
+      await removeTempDir(projectRoot);
+      await removeTempDir(altRoot);
+      await removeTempDir(configDir);
+    }
+  });
+});
+
+describe("readPlanByRoot", () => {
+  test("reads plan for a root id", async () => {
+    await withTempConfig(async ({ tasksRoot, configPath }) => {
+      await createPrd(tasksRoot, "alpha", { planMarkdown: "# Plan Alpha" });
+      const listPayload = await listRoots(configPath);
+      const rootId = listPayload.roots[0]?.id;
+      const payload = await readPlanByRoot(rootId, "alpha", configPath);
+      expect(payload.planMarkdown).toContain("Plan Alpha");
+    });
+  });
+
+  test("throws for unknown root id", async () => {
+    await withTempConfig(async ({ configPath }) => {
+      try {
+        await readPlanByRoot("missing", "alpha", configPath);
+        throw new Error("expected to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(TasksError);
+        const err = error as TasksError;
+        expect(err.code).toBe("invalid_root");
+      }
+    });
+  });
+});
+
+describe("readMarkdownByRoot", () => {
+  test("reads markdown for a root id", async () => {
+    await withTempConfig(async ({ tasksRoot, configPath }) => {
+      await createPrd(tasksRoot, "alpha", {
+        docs: [{ name: "notes.md", content: "# Notes" }],
+      });
+      const listPayload = await listRoots(configPath);
+      const rootId = listPayload.roots[0]?.id;
+      const payload = await readMarkdownByRoot(rootId, "alpha", "notes", configPath);
+      expect(payload.markdown).toContain("# Notes");
+    });
   });
 });
 

@@ -4,7 +4,7 @@ import open from "open";
 import { handleApiRequest } from "./routes";
 
 export type ServerOptions = {
-  tasksRoot: string;
+  configPath: string;
   distRoot: string;
   port?: number;
   openBrowser?: boolean;
@@ -49,7 +49,7 @@ const shouldCache = (pathname: string) => {
 
 export const startServer = async (options: ServerOptions) => {
   const port = Number(options.port ?? process.env.PGCH_PORT ?? 3000);
-  const tasksRoot = options.tasksRoot;
+  const configPath = options.configPath;
   const distRoot = resolve(options.distRoot);
   const distRootReal = await realpath(distRoot).catch(() => distRoot);
 
@@ -75,7 +75,7 @@ export const startServer = async (options: ServerOptions) => {
     async fetch(request) {
       const url = new URL(request.url);
       if (url.pathname.startsWith("/api/")) {
-        return handleApiRequest(request, tasksRoot);
+        return handleApiRequest(request, configPath);
       }
       const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
       const candidate = resolve(distRootReal, pathname.slice(1));

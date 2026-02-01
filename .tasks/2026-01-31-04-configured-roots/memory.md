@@ -12,3 +12,8 @@
 - Centralize startup validation to reuse dist root resolution and index.html checks across CLI and direct server entry.
 - Resolve the package root by walking up to find package.json so dist resolution is consistent in dev and packaged runs.
 
+## B3: Server multi-root API and tasks aggregation
+
+- Root IDs are derived from a sha1 hash of the normalized project root path, with deterministic suffixing for collisions.
+- /api/roots endpoints load config on demand and map rootId back to the normalized root for read/remove operations.
+

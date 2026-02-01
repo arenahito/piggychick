@@ -15,7 +15,7 @@
     {
       "id": "57a81cf9-099a-44cb-a12a-9bfd7b7c2c47",
       "title": "B3: Server multi-root API and tasks aggregation",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["cfb6050f-2280-4128-b20e-f54193274ef3"]
     },
     {

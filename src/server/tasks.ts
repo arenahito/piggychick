@@ -1,6 +1,14 @@
+import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, readFile, readdir, realpath } from "node:fs/promises";
 import { basename, dirname, join, resolve, sep } from "node:path";
+import {
+  loadConfigFile,
+  normalizeConfig,
+  resolveConfigPath,
+  resolveTasksDirPath,
+  type NormalizedRoot,
+} from "../shared/config";
 
 export type PrdSummary = {
   id: string;
@@ -20,6 +28,18 @@ export type PrdListMeta = {
 export type PrdListPayload = {
   meta: PrdListMeta;
   prds: PrdSummary[];
+};
+
+export type RootSummary = {
+  id: string;
+  path: string;
+  tasksDir: string;
+  meta: PrdListMeta;
+  prds: PrdSummary[];
+};
+
+export type RootsPayload = {
+  roots: RootSummary[];
 };
 
 export class TasksError extends Error {
@@ -70,6 +90,21 @@ const resolveRootLabel = (projectRoot: string) => {
     rootLabel = "root";
   }
   return rootLabel;
+};
+
+const buildRootId = (rootPath: string) => {
+  return createHash("sha1").update(rootPath).digest("hex").slice(0, 12);
+};
+
+const buildRootEntries = (roots: NormalizedRoot[]) => {
+  const counts = new Map<string, number>();
+  return roots.map((root) => {
+    const baseId = buildRootId(root.path);
+    const count = counts.get(baseId) ?? 0;
+    counts.set(baseId, count + 1);
+    const id = count === 0 ? baseId : `${baseId}-${count}`;
+    return { id, root };
+  });
 };
 
 const resolveGitDir = async (projectRoot: string) => {
@@ -349,8 +384,58 @@ export const listPrds = async (root: string): Promise<PrdListPayload> => {
 
   return {
     meta: { rootLabel, gitBranch, rootPath: projectRoot },
-    prds: results.sort((a, b) => b.label.localeCompare(a.label)),
+    prds: results.sort((a, b) => collator.compare(a.label, b.label)),
   };
+};
+
+export const listRoots = async (configPath = resolveConfigPath()): Promise<RootsPayload> => {
+  const config = await loadConfigFile(configPath);
+  const normalized = await normalizeConfig(config, { path: configPath });
+  const entries = buildRootEntries(normalized.roots);
+  const roots: RootSummary[] = [];
+  for (const entry of entries) {
+    const tasksRoot = resolveTasksDirPath(entry.root.path, entry.root.tasksDir);
+    const payload = await listPrds(tasksRoot);
+    roots.push({
+      id: entry.id,
+      path: entry.root.path,
+      tasksDir: entry.root.tasksDir,
+      meta: payload.meta,
+      prds: payload.prds,
+    });
+  }
+  return { roots };
+};
+
+export const resolveRootById = async (rootId: string, configPath = resolveConfigPath()) => {
+  const config = await loadConfigFile(configPath);
+  const normalized = await normalizeConfig(config, { path: configPath });
+  const entries = buildRootEntries(normalized.roots);
+  const match = entries.find((entry) => entry.id === rootId);
+  return match?.root ?? null;
+};
+
+export const readPlanByRoot = async (rootId: string, prd: string, configPath?: string) => {
+  const root = await resolveRootById(rootId, configPath);
+  if (!root) {
+    throw new TasksError("invalid_root", 404, "Root not found");
+  }
+  const tasksRoot = resolveTasksDirPath(root.path, root.tasksDir);
+  return readPlan(tasksRoot, prd);
+};
+
+export const readMarkdownByRoot = async (
+  rootId: string,
+  prd: string,
+  docId: string,
+  configPath?: string,
+) => {
+  const root = await resolveRootById(rootId, configPath);
+  if (!root) {
+    throw new TasksError("invalid_root", 404, "Root not found");
+  }
+  const tasksRoot = resolveTasksDirPath(root.path, root.tasksDir);
+  return readMarkdown(tasksRoot, prd, docId);
 };
 
 export const readPlan = async (root: string, prd: string) => {

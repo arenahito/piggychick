@@ -4,18 +4,37 @@ import { join } from "node:path";
 import { createPrd, createTempDir, removeTempDir } from "../helpers/fs";
 import { startServer } from "../../src/server/app";
 
+const setupConfig = async (projectRoot: string, tasksDir = ".tasks") => {
+  const configDir = await createTempDir("pgch-config");
+  const configPath = join(configDir, "config.jsonc");
+  await writeFile(
+    configPath,
+    JSON.stringify({ tasksDir, roots: [{ path: projectRoot }] }, null, 2),
+    "utf8",
+  );
+  return { configDir, configPath };
+};
+
+const setupProjectRoot = async () => {
+  const projectRoot = await createTempDir("pgch-root");
+  const tasksRoot = join(projectRoot, ".tasks");
+  await mkdir(tasksRoot, { recursive: true });
+  await createPrd(tasksRoot, "alpha");
+  return { projectRoot, tasksRoot };
+};
+
 describe("startServer", () => {
   test("serves static files and API routes", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
+    const { configDir, configPath } = await setupConfig(projectRoot);
     const assetsDir = join(distRoot, "assets");
     await mkdir(assetsDir, { recursive: true });
     await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
     await writeFile(join(assetsDir, "app.js"), "console.log('app');", "utf8");
-    await createPrd(tasksRoot, "alpha");
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -33,24 +52,25 @@ describe("startServer", () => {
       expect(assetResponse.status).toBe(200);
       expect(assetResponse.headers.get("Cache-Control")).toBeTruthy();
 
-      const apiResponse = await fetch(`${base}/api/prds`);
+      const apiResponse = await fetch(`${base}/api/roots`);
       expect(apiResponse.status).toBe(200);
       const payload = await apiResponse.json();
-      expect(payload.prds[0]?.id).toBe("alpha");
+      expect(payload.roots[0]?.prds[0]?.id).toBe("alpha");
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
+      await removeTempDir(configDir);
     }
   });
 
   test("serves fallback index when index.html is missing", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
-    await createPrd(tasksRoot, "alpha");
+    const { configDir, configPath } = await setupConfig(projectRoot);
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -63,21 +83,22 @@ describe("startServer", () => {
       expect(text).toContain("Build the client");
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
+      await removeTempDir(configDir);
     }
   });
 
   test("serves index when requesting a directory", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
     const assetsDir = join(distRoot, "assets");
     await mkdir(assetsDir, { recursive: true });
     await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
-    await createPrd(tasksRoot, "alpha");
+    const { configDir, configPath } = await setupConfig(projectRoot);
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -90,19 +111,20 @@ describe("startServer", () => {
       expect(text).toContain("Index");
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
+      await removeTempDir(configDir);
     }
   });
 
   test("rejects requests outside dist root", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
     await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
-    await createPrd(tasksRoot, "alpha");
+    const { configDir, configPath } = await setupConfig(projectRoot);
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -116,20 +138,21 @@ describe("startServer", () => {
       expect(text).toContain("Not Found");
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
+      await removeTempDir(configDir);
     }
   });
 
   test("returns octet-stream for unknown extensions", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
     await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
     await writeFile(join(distRoot, "data.unknown"), "blob", "utf8");
-    await createPrd(tasksRoot, "alpha");
+    const { configDir, configPath } = await setupConfig(projectRoot);
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -141,16 +164,17 @@ describe("startServer", () => {
       expect(response.headers.get("Content-Type")).toBe("application/octet-stream");
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
+      await removeTempDir(configDir);
     }
   });
 
   test("rejects files that resolve outside dist root when possible", async () => {
-    const tasksRoot = await createTempDir("pgch-tasks");
+    const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
     await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
-    await createPrd(tasksRoot, "alpha");
+    const { configDir, configPath } = await setupConfig(projectRoot);
 
     const outsideDir = await createTempDir("pgch-outside");
     const outsideFile = join(outsideDir, "outside.txt");
@@ -165,7 +189,7 @@ describe("startServer", () => {
     }
 
     const { server, port } = await startServer({
-      tasksRoot,
+      configPath,
       distRoot,
       port: 0,
       openBrowser: false,
@@ -177,9 +201,10 @@ describe("startServer", () => {
       expect(response.status).toBe(404);
     } finally {
       await server.stop();
-      await removeTempDir(tasksRoot);
+      await removeTempDir(projectRoot);
       await removeTempDir(distRoot);
       await removeTempDir(outsideDir);
+      await removeTempDir(configDir);
     }
   });
 });
