@@ -1,0 +1,44 @@
+{
+  "title": "Add User Authentication Feature",
+  "plan": "plan.md",
+  "tasks": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "title": "D1: Define API Specification",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "b1c2d3e4-f5a6-7890-bcde-f12345678901",
+      "title": "B1: Create User Model",
+      "passes": false,
+      "dependsOn": [
+        "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      ]
+    },
+    {
+      "id": "c2d3e4f5-a6b7-8901-cdef-123456789012",
+      "title": "B2: Create Auth Service",
+      "passes": false,
+      "dependsOn": [
+        "b1c2d3e4-f5a6-7890-bcde-f12345678901"
+      ]
+    },
+    {
+      "id": "d3e4f5a6-b7c8-9012-def0-123456789abc",
+      "title": "B3: Create Auth API",
+      "passes": false,
+      "dependsOn": [
+        "c2d3e4f5-a6b7-8901-cdef-123456789012"
+      ]
+    },
+    {
+      "id": "e4f5a6b7-c8d9-0123-ef01-23456789abcd",
+      "title": "F1: Create Auth Forms",
+      "passes": false,
+      "dependsOn": [
+        "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      ]
+    }
+  ]
+}
