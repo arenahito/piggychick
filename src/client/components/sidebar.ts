@@ -8,6 +8,8 @@ export type Selection = {
 
 type SelectHandler = (rootId: string, prdId: string) => void;
 type ToggleHandler = (rootId: string) => void;
+type ToggleFilterHandler = (value: boolean) => void;
+type ActionHandler = () => void;
 
 export const renderSidebar = (
   content: HTMLElement,
@@ -15,10 +17,16 @@ export const renderSidebar = (
   roots: RootSummary[],
   selection: Selection | null,
   collapsed: Record<string, boolean>,
+  expanded: Record<string, boolean>,
+  showIncompleteOnly: boolean,
   isConfigOpen: boolean,
   onOpenConfig: () => void,
   onSelect: SelectHandler,
   onToggleCollapse: ToggleHandler,
+  onToggleExpand: ToggleHandler,
+  onOpenAll: ActionHandler,
+  onCloseAll: ActionHandler,
+  onToggleIncomplete: ToggleFilterHandler,
 ) => {
   content.innerHTML = "";
   footer.innerHTML = "";
@@ -47,6 +55,11 @@ export const renderSidebar = (
       textarea.remove();
     }
     return ok;
+  };
+
+  const filterPrds = (prds: RootSummary["prds"]) => {
+    if (!showIncompleteOnly) return prds;
+    return prds.filter((prd) => normalizeProgress(prd.progress) !== "done");
   };
 
   for (const root of roots) {
@@ -146,7 +159,11 @@ export const renderSidebar = (
     rootSection.append(rootHeader);
 
     if (!shouldCollapse) {
-      for (const prd of root.prds) {
+      const filteredPrds = filterPrds(root.prds);
+      const hasOverflow = filteredPrds.length > 5;
+      const isExpanded = expanded[root.id] === true;
+      const visiblePrds = hasOverflow && !isExpanded ? filteredPrds.slice(0, 5) : filteredPrds;
+      for (const prd of visiblePrds) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "sidebar-prd";
@@ -170,6 +187,17 @@ export const renderSidebar = (
         button.append(title, status);
         rootSection.append(button);
       }
+      if (hasOverflow) {
+        const toggleMore = document.createElement("button");
+        toggleMore.type = "button";
+        toggleMore.className = "sidebar-prd-toggle";
+        const remaining = Math.max(0, filteredPrds.length - 5);
+        toggleMore.textContent = isExpanded ? "Show less" : `Show ${remaining} more`;
+        toggleMore.setAttribute("aria-expanded", String(isExpanded));
+        toggleMore.setAttribute("aria-label", isExpanded ? "Show fewer PRDs" : "Show more PRDs");
+        toggleMore.addEventListener("click", () => onToggleExpand(root.id));
+        rootSection.append(toggleMore);
+      }
     }
 
     content.append(rootSection);
@@ -177,6 +205,44 @@ export const renderSidebar = (
 
   const toolbar = document.createElement("div");
   toolbar.className = "sidebar-toolbar";
+  const openAllButton = document.createElement("button");
+  openAllButton.type = "button";
+  openAllButton.className = "sidebar-tool-button sidebar-tool-button--icon";
+  openAllButton.textContent = "📂";
+  openAllButton.setAttribute("aria-label", "Open all folders");
+  openAllButton.setAttribute("title", "Open all folders");
+  openAllButton.addEventListener("click", () => onOpenAll());
+  toolbar.append(openAllButton);
+
+  const closeAllButton = document.createElement("button");
+  closeAllButton.type = "button";
+  closeAllButton.className = "sidebar-tool-button sidebar-tool-button--icon";
+  closeAllButton.textContent = "📁";
+  closeAllButton.setAttribute("aria-label", "Close all folders");
+  closeAllButton.setAttribute("title", "Close all folders");
+  closeAllButton.addEventListener("click", () => onCloseAll());
+  toolbar.append(closeAllButton);
+
+  const filterLabel = document.createElement("label");
+  filterLabel.className = "sidebar-tool-toggle";
+  filterLabel.setAttribute("title", "Show incomplete PRDs only");
+  const filterInput = document.createElement("input");
+  filterInput.type = "checkbox";
+  filterInput.checked = showIncompleteOnly;
+  filterInput.setAttribute("aria-label", "Show incomplete PRDs only");
+  filterInput.addEventListener("change", (event) => {
+    const target = event.target as HTMLInputElement;
+    onToggleIncomplete(target.checked);
+  });
+  const filterEmoji = document.createElement("span");
+  filterEmoji.className = "sidebar-tool-emoji";
+  filterEmoji.textContent = "⏳";
+  filterEmoji.setAttribute("aria-hidden", "true");
+  const filterSwitch = document.createElement("span");
+  filterSwitch.className = "sidebar-tool-switch";
+  filterSwitch.setAttribute("aria-hidden", "true");
+  filterLabel.append(filterInput, filterEmoji, filterSwitch);
+  toolbar.append(filterLabel);
   const settingsButton = document.createElement("button");
   settingsButton.type = "button";
   settingsButton.className = "sidebar-tool-button";

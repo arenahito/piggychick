@@ -18,7 +18,7 @@
       "id": "cb07712b-943a-4d76-84a7-2a59485a1d9d",
       "title": "F2: Add sidebar filtering, limits, and toolbar controls",
       "category": "frontend",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["0eddad3e-c1d3-41e7-9d89-630cb342649f"]
     },
     {

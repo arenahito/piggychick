@@ -1,4 +1,11 @@
-import { fetchConfig, fetchMarkdown, fetchPlan, fetchRoots, saveConfig, type RootSummary } from "./api";
+import {
+  fetchConfig,
+  fetchMarkdown,
+  fetchPlan,
+  fetchRoots,
+  saveConfig,
+  type RootSummary,
+} from "./api";
 import {
   renderConfigEditor,
   renderConfigEditorError,
@@ -27,6 +34,8 @@ const state: {
   roots: RootSummary[];
   selection: Selection | null;
   collapsedRoots: Record<string, boolean>;
+  expandedRoots: Record<string, boolean>;
+  showIncompleteOnly: boolean;
   lastPlan: { rootId: string; prdId: string; planMarkdown: string; planJsonText: string } | null;
   viewMode: "plan" | "config";
   config: { path: string; text: string; isSaving: boolean; toast: ConfigToastState | null } | null;
@@ -34,31 +43,62 @@ const state: {
   roots: [],
   selection: null,
   collapsedRoots: {},
+  expandedRoots: {},
+  showIncompleteOnly: false,
   lastPlan: null,
   viewMode: "plan",
   config: null,
 };
 
 const collapsedRootsKey = "pgch.sidebarCollapsedRoots";
+const expandedRootsKey = "pgch.sidebarExpandedRoots";
+const showIncompleteOnlyKey = "pgch.sidebarShowIncompleteOnly";
 let selectionRequest = 0;
 let configRequest = 0;
 let configHandle: ConfigEditorHandle | null = null;
 
-const readCollapsedRoots = () => {
+const readBooleanRecord = (key: string) => {
   try {
-    const raw = localStorage.getItem(collapsedRootsKey);
+    const raw = localStorage.getItem(key);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, boolean>;
     if (!parsed || typeof parsed !== "object") return {};
-    return parsed;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === "boolean"),
+    );
   } catch {
     return {};
   }
 };
 
-const writeCollapsedRoots = (value: Record<string, boolean>) => {
+const writeBooleanRecord = (key: string, value: Record<string, boolean>) => {
   try {
-    localStorage.setItem(collapsedRootsKey, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    return;
+  }
+};
+
+const readCollapsedRoots = () => readBooleanRecord(collapsedRootsKey);
+const writeCollapsedRoots = (value: Record<string, boolean>) =>
+  writeBooleanRecord(collapsedRootsKey, value);
+const readExpandedRoots = () => readBooleanRecord(expandedRootsKey);
+const writeExpandedRoots = (value: Record<string, boolean>) =>
+  writeBooleanRecord(expandedRootsKey, value);
+
+const readShowIncompleteOnly = () => {
+  try {
+    const raw = localStorage.getItem(showIncompleteOnlyKey);
+    if (!raw) return false;
+    return JSON.parse(raw) === true;
+  } catch {
+    return false;
+  }
+};
+
+const writeShowIncompleteOnly = (value: boolean) => {
+  try {
+    localStorage.setItem(showIncompleteOnlyKey, JSON.stringify(value));
   } catch {
     return;
   }
@@ -183,20 +223,41 @@ const renderError = (message: string) => {
   layout.contentBody.append(note);
 };
 
+const filterPrds = (prds: RootSummary["prds"]) => {
+  if (!state.showIncompleteOnly) return prds;
+  return prds.filter((prd) => normalizeProgress(prd.progress) !== "done");
+};
+
 const updateMobileSelect = () => {
   const select = layout.mobileSelect;
   select.innerHTML = "";
   const entries = state.roots.flatMap((rootEntry) =>
-    rootEntry.prds.map((prd) => ({ rootEntry, prd })),
+    filterPrds(rootEntry.prds).map((prd) => ({ rootEntry, prd })),
   );
+  const selectionVisible =
+    state.selection !== null &&
+    entries.some(
+      (entry) =>
+        entry.rootEntry.id === state.selection?.rootId && entry.prd.id === state.selection?.prdId,
+    );
   select.disabled = entries.length === 0;
   if (entries.length === 0) {
     const option = document.createElement("option");
-    option.textContent = "No PRDs available";
+    option.textContent =
+      state.selection && !selectionVisible ? "Selection hidden by filter" : "No PRDs available";
     option.value = "";
     option.selected = true;
+    option.disabled = true;
     select.append(option);
     return;
+  }
+  if (state.selection && !selectionVisible) {
+    const option = document.createElement("option");
+    option.textContent = "Selection hidden by filter";
+    option.value = "";
+    option.selected = true;
+    option.disabled = true;
+    select.append(option);
   }
   for (const entry of entries) {
     const progress = normalizeProgress(entry.prd.progress);
@@ -216,6 +277,7 @@ const updateMobileSelect = () => {
       ? `${rootPrefix} / ${entry.prd.label} ${progressEmoji}`
       : `${entry.prd.label} ${progressEmoji}`;
     if (
+      selectionVisible &&
       state.selection &&
       state.selection.rootId === entry.rootEntry.id &&
       state.selection.prdId === entry.prd.id
@@ -334,8 +396,11 @@ const openConfigEditor = async () => {
   } catch (error) {
     if (requestId !== configRequest) return;
     const message = error instanceof Error ? error.message : "Failed to load config";
-    renderConfigEditorError(container, message, () => void openConfigEditor(), () =>
-      void closeConfigEditor(),
+    renderConfigEditorError(
+      container,
+      message,
+      () => void openConfigEditor(),
+      () => void closeConfigEditor(),
     );
   }
 };
@@ -407,6 +472,8 @@ const refreshSidebar = () => {
     state.roots,
     state.selection,
     state.collapsedRoots,
+    state.expandedRoots,
+    state.showIncompleteOnly,
     state.viewMode === "config",
     () => {
       void openConfigEditor();
@@ -417,6 +484,34 @@ const refreshSidebar = () => {
     (rootId) => {
       state.collapsedRoots[rootId] = !state.collapsedRoots[rootId];
       writeCollapsedRoots(state.collapsedRoots);
+      refreshSidebar();
+    },
+    (rootId) => {
+      state.expandedRoots[rootId] = !state.expandedRoots[rootId];
+      writeExpandedRoots(state.expandedRoots);
+      refreshSidebar();
+    },
+    () => {
+      const next: Record<string, boolean> = {};
+      for (const rootEntry of state.roots) {
+        next[rootEntry.id] = false;
+      }
+      state.collapsedRoots = next;
+      writeCollapsedRoots(state.collapsedRoots);
+      refreshSidebar();
+    },
+    () => {
+      const next: Record<string, boolean> = {};
+      for (const rootEntry of state.roots) {
+        next[rootEntry.id] = true;
+      }
+      state.collapsedRoots = next;
+      writeCollapsedRoots(state.collapsedRoots);
+      refreshSidebar();
+    },
+    (value) => {
+      state.showIncompleteOnly = value;
+      writeShowIncompleteOnly(value);
       refreshSidebar();
     },
   );
@@ -519,6 +614,20 @@ const syncRoots = async (
 ) => {
   const allowLoadSelection = options.allowLoadSelection ?? true;
   state.roots = payload.roots;
+  const rootIds = new Set(state.roots.map((rootEntry) => rootEntry.id));
+  const pruneRecord = (value: Record<string, boolean>) => {
+    const next: Record<string, boolean> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (rootIds.has(key) && typeof entry === "boolean") {
+        next[key] = entry;
+      }
+    }
+    return next;
+  };
+  state.collapsedRoots = pruneRecord(state.collapsedRoots);
+  writeCollapsedRoots(state.collapsedRoots);
+  state.expandedRoots = pruneRecord(state.expandedRoots);
+  writeExpandedRoots(state.expandedRoots);
   const didUpdateHash = ensureSelection();
   refreshSidebar();
   if (allowLoadSelection && state.viewMode !== "config" && !didUpdateHash) {
@@ -528,6 +637,8 @@ const syncRoots = async (
 
 const bootstrap = async () => {
   state.collapsedRoots = readCollapsedRoots();
+  state.expandedRoots = readExpandedRoots();
+  state.showIncompleteOnly = readShowIncompleteOnly();
   try {
     const payload = await fetchRoots();
     await syncRoots(payload);
