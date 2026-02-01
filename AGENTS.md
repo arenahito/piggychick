@@ -67,6 +67,8 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Render PRD markdown as separate blocks (plan first) and include a small header for each non-plan section.
 - For emoji-only toolbar buttons, override text transform and letter spacing to avoid distorting emoji glyphs.
 - Use a hidden checkbox with a visible switch track for toggle UIs to preserve accessibility.
+- Use a dedicated `role="status"` live region for copy feedback instead of updating the button label directly.
+- If a container uses `[hidden]` and a custom `display`, add a `[hidden]` rule to preserve visibility toggles.
 
 ## Client navigation
 
