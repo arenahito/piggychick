@@ -56,18 +56,24 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Reuse TOCTOU-safe file helpers (e.g., `readTextFileWithin`) when reading `plan.json`.
 - If `plan.json` fails to read, fall back to `not_started` instead of breaking the list.
 - Normalize malformed task entries (non-objects or missing `passes`) to keep progress computation resilient.
+- Normalize `prdSort` query params with trim/lowercase and apply the same order to all `/api/roots` responses.
+- Client root requests should include `prdSort=desc` to keep PRDs sorted descending.
+- Use `normalizeProgress` for incomplete filters so missing or invalid progress counts as `not_started`.
 
 ## UI and accessibility
 
 - Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0`.
 - Add `role="img"` with `aria-label` for emoji indicators.
 - Render PRD markdown as separate blocks (plan first) and include a small header for each non-plan section.
+- For emoji-only toolbar buttons, override text transform and letter spacing to avoid distorting emoji glyphs.
+- Use a hidden checkbox with a visible switch track for toggle UIs to preserve accessibility.
 
 ## Client navigation
 
 - Canonicalize PRD hashes to `#/prdId` and ignore legacy extra segments.
 - Normalize doc IDs (trim, strip `.md`, case-insensitive de-duplication) before sorting with `Intl.Collator("en", { sensitivity: "base", numeric: true })`.
 - Guard async PRD loads with a request token so stale responses do not overwrite the current selection.
+- When filters hide the active PRD in the mobile selector, insert a disabled placeholder option to avoid implying a different selection.
 
 ## Git metadata
 
@@ -77,6 +83,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 ## Client state
 
 - Wrap localStorage access in try/catch and keep UI state toggles functional when storage is unavailable.
+- Prune stored per-root UI state to known root IDs during sync to avoid stale localStorage entries.
 
 ## Config editor
 
