@@ -33,7 +33,7 @@
     {
       "id": "78d508e3-d76a-41e3-a9d3-4a0761e45cd0",
       "title": "D1: README updates for new config flow",
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "cfb6050f-2280-4128-b20e-f54193274ef3",
         "b6f43e4d-4bbc-4720-af1d-a4b9f2e4851c",

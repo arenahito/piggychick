@@ -27,3 +27,7 @@
 - Sidebar now renders a per-root header with emoji copy/remove actions and a sticky footer toolbar for adding roots.
 - Copy feedback uses button state styling while keeping the emoji label short.
 
+## D1: README updates for new config flow
+
+- Documented config file location, CLI commands, and per-root tasksDir overrides in README.
+

@@ -1,6 +1,6 @@
 # PiggyChick Server
 
-PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It renders GitHub-flavored Markdown with Mermaid diagrams and shows a dependency graph for `plan.json`, with a dark-by-default theme and a light toggle that persists.
+PiggyChick is a local Bun-powered viewer for tasks directories configured in `~/.config/piggychick/config.jsonc`. It renders GitHub-flavored Markdown with Mermaid diagrams and shows a dependency graph for `plan.json`, with a dark-by-default theme and a light toggle that persists.
 
 ## Setup
 
@@ -32,21 +32,35 @@ bun add @arenahito/piggychick
 bunx pgch
 ```
 
-The CLI reads `.tasks` from your current working directory by default. Set `PGCH_TASKS_ROOT` to override it (relative paths are resolved from the current working directory).
-Bun is required at runtime.
-
-POSIX:
+The CLI reads project roots from `~/.config/piggychick/config.jsonc`. Use `pgch add` to add a project root (uses the current working directory when omitted), and `pgch remove` to delete it. Bun is required at runtime.
 
 ```bash
-PGCH_TASKS_ROOT=./example/.tasks pgch
+pgch config   # show config path
+pgch list     # list configured roots
+pgch add      # add current directory as a root
+pgch add ./path/to/project
+pgch remove ./path/to/project
 ```
 
-PowerShell:
+If no roots are configured, the UI shows no PRDs.
 
-```powershell
-$env:PGCH_TASKS_ROOT = "./example/.tasks"
-pgch
+### Config File
+
+Location: `~/.config/piggychick/config.jsonc`
+
+```jsonc
+{
+  // PiggyChick config
+  "tasksDir": ".tasks",
+  "roots": [
+    { "path": "/abs/path/to/project" },
+    { "path": "/abs/path/to/other-project", "tasksDir": ".tasks-prd" }
+  ]
+}
 ```
+
+- `tasksDir` defaults to `.tasks` when omitted or blank.
+- `roots` entries can override `tasksDir` per root by editing the config file.
 
 ## Development
 
@@ -99,9 +113,9 @@ bun test
 Tests enforce 90% coverage thresholds via `bunfig.toml`.
 Thresholds apply to line/function/statement coverage; excluded paths are listed in `bunfig.toml`.
 
-## .tasks Requirements
+## Tasks Directory Requirements
 
-Each PRD directory must live under `./.tasks/` and include:
+Each PRD directory must live under the configured tasks directory (default: `./.tasks/`) and include:
 
 - `plan.md`
 - `plan.json`
@@ -115,7 +129,7 @@ Only safe Markdown filenames are surfaced (no path separators, reserved device n
 
 ## UI Overview
 
-- **Sidebar tree**: Select a PRD and one of its documents (`plan` plus any extra Markdown files).
+- **Sidebar tree**: Lists all configured roots and their PRDs.
 - **Plan view**: Split pane with Markdown on the left and a Mermaid dependency graph on the right.
 - **Theme**: Dark by default with a persistent light toggle.
 - **No extra docs**: PRDs without additional Markdown files show only `plan`.
