@@ -1,48 +1,100 @@
-# PiggyChick Server
+# PiggyChick
 
-PiggyChick is a local Bun-powered viewer for tasks directories configured in `~/.config/piggychick/config.jsonc`. It renders GitHub-flavored Markdown with Mermaid diagrams and shows a dependency graph for `plan.json`, with a dark-by-default theme and a light toggle that persists.
+> [!WARNING]
+> This project is under active development and not yet published to npm.
 
-## Setup
+**A friendly viewer for AI-generated planning documents.**
+
+![PiggyChick](docs/piggychick.jpg)
+
+## What is this?
+
+When coding with AI agents (such as Claude Code, Codex CLI, or OpenCode),
+there are "skills" that help you follow a plan-then-implement workflow.
+
+These skills automatically generate planning documents (PRDs) in a `.tasks`
+directory. **PiggyChick displays these documents in a clean, browsable web UI.**
+
+- Beautiful Markdown rendering
+- Visual dependency graphs for tasks
+- Multi-project support
+
+## Installation
+
+Requires [Bun](https://bun.sh/).
 
 ```bash
-bun install
-```
-
-## CLI Usage
-
-Run without installing:
-
-```bash
+# Try it instantly (no install needed)
 bunx @arenahito/piggychick
-# or
-npx @arenahito/piggychick
-```
 
-Install globally and use the `pgch` alias:
-
-```bash
+# Install globally (recommended)
 bun add -g @arenahito/piggychick
 pgch
 ```
 
-Install locally and run via bunx:
+## Usage
+
+### Register a project
+
+Add projects you want to view in PiggyChick:
 
 ```bash
-bun add @arenahito/piggychick
-bunx pgch
-```
+# Register current directory
+pgch add
 
-The CLI reads project roots from `~/.config/piggychick/config.jsonc`. Use `pgch add` to add a project root and `pgch remove` to delete it (both use the current working directory when omitted). Bun is required at runtime.
-
-```bash
-pgch config   # show config path
-pgch list     # list configured roots
-pgch add      # add current directory as a root
+# Register a specific path
 pgch add ./path/to/project
-pgch remove ./path/to/project
 ```
 
-If no roots are configured, the UI shows no PRDs.
+### Start the viewer
+
+```bash
+pgch
+```
+
+Your browser opens automatically, showing all registered projects and their
+planning documents.
+
+### Other commands
+
+```bash
+pgch list     # List registered projects
+pgch remove   # Unregister current directory
+pgch config   # Show config file location
+```
+
+## Compatible Skills
+
+PiggyChick works with `.tasks` directories created by these skills:
+
+- **impl-plan**: Creates planning documents
+- **impl-do**: Implements tasks from planning documents
+
+Skills are located in `skills/impl/`. They work with AI agents that support
+custom skills, including Claude Code, Codex CLI, OpenCode, and others.
+
+## UI Overview
+
+![Screenshot](docs/screen.png)
+
+| Element | Description |
+|---------|-------------|
+| Sidebar | Project and PRD list with progress indicators |
+| Main panel (left) | Rendered Markdown content |
+| Main panel (right) | Task dependency graph |
+
+---
+
+## For Developers
+
+### Required Files
+
+Each PRD directory must contain:
+
+- `plan.md` - The planning document
+- `plan.json` - Task definitions and dependencies
+
+Additional `.md` files are shown as extra documents when present.
 
 ### Config File
 
@@ -53,84 +105,28 @@ Location: `~/.config/piggychick/config.jsonc`
   // PiggyChick config
   "tasksDir": ".tasks",
   "roots": [
-    { "path": "/abs/path/to/project" },
-    { "path": "/abs/path/to/other-project", "tasksDir": ".tasks-prd" }
+    { "path": "/path/to/project" },
+    { "path": "/path/to/other-project", "tasksDir": ".tasks-prd" }
   ]
 }
 ```
 
-- `tasksDir` defaults to `.tasks` when omitted or blank.
-- `roots` entries can override `tasksDir` per root by editing the config file.
+- `tasksDir`: Task directory name (default: `.tasks`)
+- `roots`: List of projects to monitor. Each project can override `tasksDir`
 
-## Development
-
-```bash
-bun run dev
-```
-
-This runs the Bun server and the client build watcher. Open the URL printed by the server (default: `http://localhost:3000`).
-
-## Build
+### Development Setup
 
 ```bash
-bun run build
+bun install   # Install dependencies
+bun run dev   # Start dev server (http://localhost:3000)
 ```
 
-This generates the static client bundle in `dist/`.
-
-## Lint
+### Other Commands
 
 ```bash
-bun run lint
+bun run build      # Production build
+bun run lint       # Run linter
+bun run fmt        # Format code
+bun run typecheck  # Type check
+bun test           # Run tests
 ```
-
-## Format
-
-```bash
-bun run fmt
-```
-
-```bash
-bun run fmt:check
-```
-
-Formats code. `fmt:check` verifies formatting without writing files.
-
-## Type Check
-
-```bash
-bun run typecheck
-```
-
-Type-checks with tsgo.
-
-## Test
-
-```bash
-bun test
-```
-
-Tests enforce 90% coverage thresholds via `bunfig.toml`.
-Thresholds apply to line/function/statement coverage; excluded paths are listed in `bunfig.toml`.
-
-## Tasks Directory Requirements
-
-Each PRD directory must live under the configured tasks directory (default: `./.tasks/`) and include:
-
-- `plan.md`
-- `plan.json`
-
-Optional files (shown in the UI when present):
-
-- Any additional `.md` files in the PRD folder (except `plan.md`)
-
-Only directories that include both `plan.md` and `plan.json` are listed.
-Only safe Markdown filenames are surfaced (no path separators, reserved device names, trailing dots/spaces, or other invalid IDs).
-
-## UI Overview
-
-- **Sidebar tree**: Lists all configured roots and their PRDs.
-- **Plan view**: Split pane with Markdown on the left and a Mermaid dependency graph on the right.
-- **Theme**: Dark by default with a persistent light toggle.
-- **No extra docs**: PRDs without additional Markdown files show only `plan`.
-- **Refresh**: Adding/removing docs requires a page reload to refresh the list.
