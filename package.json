@@ -27,7 +27,7 @@
     "lint": "oxlint . --ignore-path .oxlintignore",
     "typecheck": "tsgo --project tsconfig.json",
     "test": "bun test",
-    "prepublishOnly": "bun run build"
+    "prepare": "bun run build"
   },
   "dependencies": {
     "d3-transition": "^3.0.1",
