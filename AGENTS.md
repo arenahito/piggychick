@@ -70,6 +70,8 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - For emoji-only toolbar buttons, override text transform and letter spacing to avoid distorting emoji glyphs.
 - Use a hidden checkbox with a visible switch track for toggle UIs to preserve accessibility.
 - Use a dedicated `role="status"` live region for copy feedback instead of updating the button label directly.
+- For plan-view metadata headers (like PRD paths), align to the markdown max width, allow wrapping, and use muted-strong monospace text for readability.
+- When copy buttons use `data-state` success/error styling, avoid hover styles that override those feedback colors.
 - If a container uses `[hidden]` and a custom `display`, add a `[hidden]` rule to preserve visibility toggles.
 
 ## Client navigation
