@@ -21,14 +21,17 @@ directory. **PiggyChick displays these documents in a clean, browsable web UI.**
 
 ## Installation
 
-Requires [Bun](https://bun.sh/).
+Requires:
+
+- [Node.js](https://nodejs.org/)
+- [Bun](https://bun.sh/)
 
 ```bash
 # Try it instantly (no install needed)
-bunx @arenahito/piggychick
+npx github:arenahito/piggychick
 
 # Install globally (recommended)
-bun add -g @arenahito/piggychick
+npm install -g github:arenahito/piggychick
 pgch
 ```
 
