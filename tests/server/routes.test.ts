@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createPrd, createTempDir, removeTempDir } from "../helpers/fs";
 import { handleApiRequest } from "../../src/server/routes";
@@ -114,6 +114,101 @@ describe("handleApiRequest", () => {
       expect(response.status).toBe(200);
       const payload = await response.json();
       expect(payload.markdown).toContain("# Notes Space");
+    });
+  });
+
+  test("returns config payload", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const request = new Request("http://localhost/api/config");
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.path).toBe(configPath);
+      expect(typeof payload.text).toBe("string");
+    });
+  });
+
+  test("saves config updates", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const text = JSON.stringify({ tasksDir: ".tasks", roots: [] }, null, 2);
+      const request = new Request("http://localhost/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.text).toBe(text);
+      const saved = await readFile(configPath, "utf8");
+      expect(saved).toBe(text);
+    });
+  });
+
+  test("rejects invalid config text without writing", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const before = await readFile(configPath, "utf8");
+      const request = new Request("http://localhost/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "{" }),
+      });
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(400);
+      const payload = await response.json();
+      expect(payload.error?.code).toBe("config_parse_error");
+      const after = await readFile(configPath, "utf8");
+      expect(after).toBe(before);
+    });
+  });
+
+  test("rejects invalid config schema without writing", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const before = await readFile(configPath, "utf8");
+      const text = JSON.stringify({ tasksDir: 123, roots: [] }, null, 2);
+      const request = new Request("http://localhost/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(400);
+      const payload = await response.json();
+      expect(payload.error?.code).toBe("config_invalid");
+      const after = await readFile(configPath, "utf8");
+      expect(after).toBe(before);
+    });
+  });
+
+  test("rejects invalid root tasksDir override without writing", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const before = await readFile(configPath, "utf8");
+      const text = JSON.stringify({ tasksDir: ".tasks", roots: [{ path: "/tmp", tasksDir: 1 }] });
+      const request = new Request("http://localhost/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(400);
+      const payload = await response.json();
+      expect(payload.error?.code).toBe("config_invalid");
+      const after = await readFile(configPath, "utf8");
+      expect(after).toBe(before);
+    });
+  });
+
+  test("rejects non-string config text", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const request = new Request("http://localhost/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: 42 }),
+      });
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(400);
+      const payload = await response.json();
+      expect(payload.error?.code).toBe("invalid_body");
     });
   });
 

@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseJsonc } from "./jsonc";
@@ -118,6 +118,82 @@ export const loadConfigFile = async (path = resolveConfigPath()): Promise<Config
   };
 };
 
+export const readConfigText = async (path = resolveConfigPath()) => {
+  await ensureConfigFile(path);
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    const detail = code ? ` (${code})` : "";
+    throw new ConfigError("config_read_error", `Failed to read config: ${path}${detail}`);
+  }
+};
+
+const validateConfigText = async (text: string, path: string) => {
+  let parsed: unknown;
+  try {
+    parsed = parseJsonc(text);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Invalid JSONC";
+    throw new ConfigError("config_parse_error", `Failed to parse config ${path}: ${detail}`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new ConfigError("config_invalid", `Invalid config object: ${path}`);
+  }
+  const obj = parsed as { roots?: unknown; tasksDir?: unknown };
+  if (obj.roots !== undefined && !Array.isArray(obj.roots)) {
+    throw new ConfigError("config_invalid", `Invalid roots array in ${path}`);
+  }
+  if (obj.tasksDir !== undefined && typeof obj.tasksDir !== "string") {
+    throw new ConfigError("config_invalid", `Invalid tasksDir in ${path}`);
+  }
+  if (Array.isArray(obj.roots)) {
+    for (const entry of obj.roots) {
+      if (!entry || typeof entry !== "object") continue;
+      if ("tasksDir" in entry && typeof entry.tasksDir !== "string") {
+        throw new ConfigError("config_invalid", `Invalid tasksDir in ${path}`);
+      }
+    }
+  }
+  await normalizeConfig(obj as ConfigFile, { path });
+};
+
+const buildTempConfigPath = (path: string) => {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2);
+  return `${path}.${stamp}.${rand}.tmp`;
+};
+
+export const writeConfigText = async (text: string, path = resolveConfigPath()) => {
+  await validateConfigText(text, path);
+  const dir = dirname(path);
+  await mkdir(dir, { recursive: true });
+  const tempPath = buildTempConfigPath(path);
+  try {
+    await writeFile(tempPath, text, "utf8");
+    let renamed = false;
+    try {
+      await rename(tempPath, path);
+      renamed = true;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "EEXIST" || code === "EPERM") {
+        await unlink(path).catch(() => null);
+        await rename(tempPath, path);
+        renamed = true;
+      } else {
+        throw error;
+      }
+    } finally {
+      if (!renamed) {
+        await unlink(tempPath).catch(() => null);
+      }
+    }
+  } catch {
+    throw new ConfigError("config_write_error", `Failed to write config: ${path}`);
+  }
+};
+
 export const ensureConfigFile = async (path = resolveConfigPath()) => {
   try {
     await lstat(path);
@@ -161,6 +237,11 @@ export const normalizeConfig = async (
     const pathValue = "path" in entry && typeof entry.path === "string" ? entry.path.trim() : "";
     if (!pathValue) {
       throw new ConfigError("config_invalid", `Root path is required in ${configPath}`);
+    }
+
+    const overrideValue = "tasksDir" in entry ? entry.tasksDir : undefined;
+    if (overrideValue !== undefined && typeof overrideValue !== "string") {
+      throw new ConfigError("config_invalid", `Invalid tasksDir in ${configPath}`);
     }
 
     const resolvedPath = resolve(cwd, pathValue);

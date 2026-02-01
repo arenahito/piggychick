@@ -4,10 +4,12 @@ import {
   ConfigError,
   loadConfigFile,
   normalizeConfig,
+  readConfigText,
   resolveConfigPath,
   saveConfigFile,
   tasksDirExists,
   toConfigFile,
+  writeConfigText,
 } from "../shared/config";
 import {
   listRoots,
@@ -100,6 +102,32 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
         }
         const payload = await listRoots(configPath);
         return new Response(JSON.stringify(payload), { headers: jsonHeaders });
+      } catch (error) {
+        return handleTasksError(error);
+      }
+    }
+    return jsonError(405, "method_not_allowed", "Method not allowed");
+  }
+
+  if (segments[1] === "config" && segments.length === 2) {
+    if (request.method === "GET") {
+      try {
+        const text = await readConfigText(configPath);
+        return new Response(JSON.stringify({ path: configPath, text }), { headers: jsonHeaders });
+      } catch (error) {
+        return handleTasksError(error);
+      }
+    }
+    if (request.method === "PUT") {
+      try {
+        const body = (await request.json().catch(() => null)) as { text?: unknown } | null;
+        if (!body || typeof body.text !== "string") {
+          return jsonError(400, "invalid_body", "Text is required");
+        }
+        await writeConfigText(body.text, configPath);
+        return new Response(JSON.stringify({ path: configPath, text: body.text }), {
+          headers: jsonHeaders,
+        });
       } catch (error) {
         return handleTasksError(error);
       }

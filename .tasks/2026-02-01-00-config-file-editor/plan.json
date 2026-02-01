@@ -1,0 +1,25 @@
+{
+  "tasks": [
+    {
+      "id": "02ba8f2b-9bf7-4769-8e51-83aedb31a33f",
+      "title": "B1: Add config text helpers and API endpoints",
+      "category": "backend",
+      "passes": true,
+      "dependsOn": []
+    },
+    {
+      "id": "49b7af1e-026f-4ff2-90b7-0e1cc603e064",
+      "title": "F1: Add config editor view and wiring",
+      "category": "frontend",
+      "passes": false,
+      "dependsOn": ["02ba8f2b-9bf7-4769-8e51-83aedb31a33f"]
+    },
+    {
+      "id": "0e081d56-b1d1-467c-bbc7-a56666136057",
+      "title": "F2: Implement JSONC highlighting, toast, and editor styles",
+      "category": "frontend",
+      "passes": false,
+      "dependsOn": ["49b7af1e-026f-4ff2-90b7-0e1cc603e064"]
+    }
+  ]
+}

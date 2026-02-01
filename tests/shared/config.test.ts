@@ -132,6 +132,21 @@ describe("normalizeConfig", () => {
     });
   });
 
+  test("rejects non-string root tasksDir", async () => {
+    await withTempConfig(async (path) => {
+      const config = {
+        tasksDir: ".tasks",
+        roots: [{ path: "alpha", tasksDir: 1 as unknown as string }],
+      };
+      try {
+        await normalizeConfig(config, { cwd: process.cwd(), path });
+        throw new Error("expected to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigError);
+      }
+    });
+  });
+
   test("dedupes roots case-insensitively", async () => {
     await withTempConfig(async (path) => {
       const config = {
