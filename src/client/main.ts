@@ -36,7 +36,13 @@ const state: {
   collapsedRoots: Record<string, boolean>;
   expandedRoots: Record<string, boolean>;
   showIncompleteOnly: boolean;
-  lastPlan: { rootId: string; prdId: string; planMarkdown: string; planJsonText: string } | null;
+  lastPlan: {
+    rootId: string;
+    prdId: string;
+    planMarkdown: string;
+    planJsonText: string;
+    prdPath: string;
+  } | null;
   viewMode: "plan" | "config";
   config: { path: string; text: string; isSaving: boolean; toast: ConfigToastState | null } | null;
 } = {
@@ -607,8 +613,15 @@ const loadSelection = async () => {
       prdId,
       planMarkdown: payload.planMarkdown,
       planJsonText: payload.planJsonText,
+      prdPath: payload.prdPath ?? "",
     };
-    await renderPlanView(planContainer, sections, payload.planJsonText, currentTheme);
+    await renderPlanView(
+      planContainer,
+      sections,
+      payload.planJsonText,
+      currentTheme,
+      payload.prdPath,
+    );
   } catch (error) {
     if (requestId !== selectionRequest) {
       return;

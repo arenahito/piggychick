@@ -9,7 +9,7 @@
     {
       "id": "1907beae-8328-4f67-8bc0-7204d3f32912",
       "title": "F1: Render PRD path header with copy action",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["139ab646-f93a-4ebf-9f61-29292a3efe4b"]
     },
     {

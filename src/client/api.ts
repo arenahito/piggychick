@@ -29,6 +29,7 @@ export type RootsPayload = {
 export type PlanPayload = {
   planMarkdown: string;
   planJsonText: string;
+  prdPath?: string;
 };
 
 export type MarkdownPayload = {

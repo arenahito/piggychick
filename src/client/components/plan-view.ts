@@ -13,8 +13,33 @@ export const renderPlanView = async (
   sections: MarkdownSection[],
   planJsonText: string,
   theme: "dark",
+  prdPath?: string,
 ) => {
   container.innerHTML = "";
+
+  const copyWithFallback = async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {}
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.focus();
+    textarea.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+    return ok;
+  };
 
   const wrapper = document.createElement("div");
   wrapper.className = "plan-view";
@@ -23,6 +48,59 @@ export const renderPlanView = async (
   markdownPane.className = "plan-pane plan-markdown";
 
   const docTargets = new Map<string, HTMLElement>();
+  const prdPathValue = typeof prdPath === "string" ? prdPath.trim() : "";
+  let pathHeader: HTMLDivElement | null = null;
+
+  if (prdPathValue) {
+    pathHeader = document.createElement("div");
+    pathHeader.className = "plan-prd-path";
+
+    const pathText = document.createElement("div");
+    pathText.className = "plan-prd-path-text";
+    pathText.textContent = prdPathValue;
+
+    const copyStatus = document.createElement("span");
+    copyStatus.className = "sr-only";
+    copyStatus.setAttribute("role", "status");
+    copyStatus.setAttribute("aria-live", "polite");
+    copyStatus.setAttribute("aria-atomic", "true");
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "plan-prd-copy";
+    copyButton.textContent = "📋";
+    copyButton.setAttribute("title", "Copy path");
+    copyButton.setAttribute("aria-label", "Copy path");
+    copyButton.dataset.state = "idle";
+
+    let resetHandle: number | null = null;
+    const setCopyState = (state: "idle" | "copied" | "error") => {
+      if (resetHandle !== null) {
+        window.clearTimeout(resetHandle);
+        resetHandle = null;
+      }
+      copyButton.dataset.state = state;
+      if (state === "copied") {
+        copyStatus.textContent = "Copied";
+      } else if (state === "error") {
+        copyStatus.textContent = "Copy failed";
+      } else {
+        copyStatus.textContent = "";
+      }
+      if (state !== "idle") {
+        resetHandle = window.setTimeout(() => setCopyState("idle"), 1500);
+      }
+    };
+
+    copyButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void copyWithFallback(prdPathValue)
+        .then((ok) => setCopyState(ok ? "copied" : "error"))
+        .catch(() => setCopyState("error"));
+    });
+
+    pathHeader.append(pathText, copyButton, copyStatus);
+  }
 
   for (const section of sections) {
     const block = document.createElement("article");
@@ -59,8 +137,9 @@ export const renderPlanView = async (
   }
 
   const docSections = sections.filter((section) => section.kind === "doc");
+  let nav: HTMLElement | null = null;
   if (docSections.length > 0) {
-    const nav = document.createElement("nav");
+    nav = document.createElement("nav");
     nav.className = "plan-doc-nav";
     nav.setAttribute("aria-label", "Markdown sections");
     for (const section of docSections) {
@@ -75,7 +154,18 @@ export const renderPlanView = async (
       });
       nav.append(button);
     }
-    markdownPane.prepend(nav);
+  }
+
+  if (pathHeader) {
+    markdownPane.prepend(pathHeader);
+  }
+
+  if (nav) {
+    if (pathHeader) {
+      pathHeader.after(nav);
+    } else {
+      markdownPane.prepend(nav);
+    }
   }
 
   const graphPane = document.createElement("section");
