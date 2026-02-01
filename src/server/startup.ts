@@ -1,6 +1,11 @@
 import { lstatSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadConfigFile, normalizeConfig, resolveConfigPath } from "../shared/config";
+import {
+  ensureConfigFile,
+  loadConfigFile,
+  normalizeConfig,
+  resolveConfigPath,
+} from "../shared/config";
 import { resolveDistRoot } from "../shared/paths";
 import { startServer } from "./app";
 
@@ -38,6 +43,7 @@ export type StartupOptions = {
 
 export const startServerWithConfig = async (options: StartupOptions = {}) => {
   const configPath = options.configPath ?? resolveConfigPath();
+  await ensureConfigFile(configPath);
   const config = await loadConfigFile(configPath);
   await normalizeConfig(config, { path: configPath });
   const distRoot = resolveDistRoot(options.distRoot);

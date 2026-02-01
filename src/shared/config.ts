@@ -118,6 +118,21 @@ export const loadConfigFile = async (path = resolveConfigPath()): Promise<Config
   };
 };
 
+export const ensureConfigFile = async (path = resolveConfigPath()) => {
+  try {
+    await lstat(path);
+    return;
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code !== "ENOENT") {
+      const detail = code ? ` (${code})` : "";
+      throw new ConfigError("config_read_error", `Failed to read config: ${path}${detail}`);
+    }
+  }
+
+  await saveConfigFile({ roots: [], tasksDir: defaultTasksDir }, path);
+};
+
 export const normalizeConfig = async (
   config: ConfigFile,
   options: { cwd?: string; path?: string } = {},
