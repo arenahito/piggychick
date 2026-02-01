@@ -9,7 +9,7 @@
     {
       "id": "395ad411-5eb1-4f3e-bcc4-2ce04cc8e5af",
       "title": "B2: Resolve worktree PRD IDs when reading plans/docs",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["bc1aea94-c4f1-4ba0-a732-10476b745e2c"]
     },
     {

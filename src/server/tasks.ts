@@ -164,6 +164,32 @@ const encodeWorktreePrdId = (worktreeId: string, prdId: string) => {
   return `wt:${worktreeId}:${prdId}`;
 };
 
+const isValidWorktreeId = (value: string) => {
+  return /^[a-f0-9]{12}$/i.test(value);
+};
+
+type PrdIdentity = {
+  prdId: string;
+  worktreeId: string | null;
+};
+
+const parsePrdIdentity = (prdParam: string): PrdIdentity | null => {
+  if (!prdParam.startsWith("wt:")) {
+    return { prdId: prdParam, worktreeId: null };
+  }
+  const rest = prdParam.slice(3);
+  const separator = rest.indexOf(":");
+  if (separator <= 0 || separator >= rest.length - 1) {
+    return null;
+  }
+  const worktreeId = rest.slice(0, separator);
+  const prdId = rest.slice(separator + 1);
+  if (!isValidWorktreeId(worktreeId)) {
+    return null;
+  }
+  return { prdId, worktreeId };
+};
+
 const buildRootEntries = (roots: NormalizedRoot[]) => {
   const counts = new Map<string, number>();
   return roots.map((root) => {
@@ -271,10 +297,12 @@ const isSafePrd = (prd: string) => {
   if (prd.trim().length === 0) return false;
   if (prd !== prd.trim()) return false;
   if (prd.includes("..")) return false;
+  if (prd.includes(":")) return false;
   if (prd.includes("/") || prd.includes("\\")) return false;
   if (prd.includes("\0")) return false;
   if (/[. ]$/.test(prd)) return false;
   const lowered = prd.toLowerCase();
+  if (lowered.startsWith("wt:")) return false;
   const deviceBase = lowered.split(".")[0];
   if (reservedDeviceNames.has(deviceBase)) return false;
   return true;
@@ -594,13 +622,36 @@ export const resolveRootById = async (rootId: string, configPath = resolveConfig
   return match?.root ?? null;
 };
 
+const resolveTasksRootForPrd = async (root: NormalizedRoot, identity: PrdIdentity) => {
+  if (!identity.worktreeId) {
+    return resolveTasksDirPath(root.path, root.tasksDir);
+  }
+  const gitInfo = await resolveGitInfo(root.path).catch(() => ({
+    gitDir: null,
+    isWorktree: false,
+  }));
+  if (!gitInfo.gitDir || gitInfo.isWorktree) {
+    throw new TasksError("not_found", 404, "PRD not found");
+  }
+  const worktrees = await listGitWorktrees(root.path, gitInfo.gitDir);
+  const match = worktrees.find((worktree) => worktree.id === identity.worktreeId);
+  if (!match) {
+    throw new TasksError("not_found", 404, "PRD not found");
+  }
+  return resolveTasksDirPath(match.path, root.tasksDir);
+};
+
 export const readPlanByRoot = async (rootId: string, prd: string, configPath?: string) => {
   const root = await resolveRootById(rootId, configPath);
   if (!root) {
     throw new TasksError("invalid_root", 404, "Root not found");
   }
-  const tasksRoot = resolveTasksDirPath(root.path, root.tasksDir);
-  return readPlan(tasksRoot, prd);
+  const identity = parsePrdIdentity(prd);
+  if (!identity) {
+    throw new TasksError("not_found", 404, "PRD not found");
+  }
+  const tasksRoot = await resolveTasksRootForPrd(root, identity);
+  return readPlan(tasksRoot, identity.prdId);
 };
 
 export const readMarkdownByRoot = async (
@@ -613,8 +664,12 @@ export const readMarkdownByRoot = async (
   if (!root) {
     throw new TasksError("invalid_root", 404, "Root not found");
   }
-  const tasksRoot = resolveTasksDirPath(root.path, root.tasksDir);
-  return readMarkdown(tasksRoot, prd, docId);
+  const identity = parsePrdIdentity(prd);
+  if (!identity) {
+    throw new TasksError("not_found", 404, "PRD not found");
+  }
+  const tasksRoot = await resolveTasksRootForPrd(root, identity);
+  return readMarkdown(tasksRoot, identity.prdId, docId);
 };
 
 export const readPlan = async (root: string, prd: string) => {
