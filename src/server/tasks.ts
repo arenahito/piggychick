@@ -15,6 +15,7 @@ export type PrdSummary = {
   label: string;
   docs: string[];
   progress: PrdProgress;
+  worktree?: { id: string; label: string };
 };
 
 export type PrdProgress = "not_started" | "in_progress" | "done";
@@ -41,6 +42,17 @@ export type RootSummary = {
 
 export type RootsPayload = {
   roots: RootSummary[];
+};
+
+type WorktreeInfo = {
+  id: string;
+  path: string;
+  label: string;
+};
+
+type GitInfo = {
+  gitDir: string | null;
+  isWorktree: boolean;
 };
 
 export class TasksError extends Error {
@@ -97,6 +109,61 @@ const buildRootId = (rootPath: string) => {
   return createHash("sha1").update(rootPath).digest("hex").slice(0, 12);
 };
 
+const buildWorktreeId = (worktreePath: string) => {
+  return buildRootId(worktreePath);
+};
+
+const resolveRootDirName = (projectRoot: string) => {
+  let name = basename(projectRoot);
+  if (!name) {
+    const trimmed = projectRoot.replace(/[\\/]+$/, "");
+    name = basename(trimmed);
+  }
+  return name;
+};
+
+const normalizeWorktreeLabel = (rootDirName: string, worktreeDirName: string) => {
+  let label = worktreeDirName;
+  if (rootDirName) {
+    const loweredRoot = rootDirName.toLowerCase();
+    if (label.toLowerCase().startsWith(loweredRoot)) {
+      label = label.slice(rootDirName.length);
+    }
+  }
+  const trimmed = label.replace(/^[^A-Za-z0-9]+/, "");
+  return trimmed || worktreeDirName;
+};
+
+const parseGitDirLine = (line: string) => {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^gitdir:\s*(.+)$/i);
+  const value = match ? match[1].trim() : trimmed;
+  return value || null;
+};
+
+const resolveGitDirFromFile = (targetPath: string, contents: string) => {
+  const firstLine = contents.split(/\r?\n/)[0] ?? "";
+  const gitdirValue = parseGitDirLine(firstLine);
+  if (!gitdirValue) return null;
+  return resolve(dirname(targetPath), gitdirValue);
+};
+
+const isWorktreeGitDir = (gitDir: string) => {
+  const parts = gitDir.split(/[\\/]+/).filter(Boolean);
+  const lowered = parts.map((part) => part.toLowerCase());
+  for (let index = 0; index < lowered.length - 1; index += 1) {
+    if (lowered[index] === ".git" && lowered[index + 1] === "worktrees") {
+      return true;
+    }
+  }
+  return false;
+};
+
+const encodeWorktreePrdId = (worktreeId: string, prdId: string) => {
+  return `wt:${worktreeId}:${prdId}`;
+};
+
 const buildRootEntries = (roots: NormalizedRoot[]) => {
   const counts = new Map<string, number>();
   return roots.map((root) => {
@@ -108,34 +175,38 @@ const buildRootEntries = (roots: NormalizedRoot[]) => {
   });
 };
 
-const resolveGitDir = async (projectRoot: string) => {
+const resolveGitInfo = async (projectRoot: string): Promise<GitInfo> => {
   const dotGit = resolve(projectRoot, ".git");
   const initialStats = await lstat(dotGit).catch(() => null);
-  if (!initialStats) return null;
+  if (!initialStats) return { gitDir: null, isWorktree: false };
 
   let targetPath = dotGit;
   let stats = initialStats;
   if (stats.isSymbolicLink()) {
     const resolved = await realpath(dotGit).catch(() => null);
-    if (!resolved) return null;
+    if (!resolved) return { gitDir: null, isWorktree: false };
     targetPath = resolved;
     const resolvedStats = await lstat(resolved).catch(() => null);
-    if (!resolvedStats) return null;
+    if (!resolvedStats) return { gitDir: null, isWorktree: false };
     stats = resolvedStats;
   }
 
-  if (stats.isDirectory()) return targetPath;
-  if (!stats.isFile()) return null;
+  if (stats.isDirectory()) {
+    return { gitDir: targetPath, isWorktree: false };
+  }
+  if (!stats.isFile()) return { gitDir: null, isWorktree: false };
 
   const contents = await readFile(targetPath, "utf8").catch(() => null);
-  if (!contents) return null;
-  const firstLine = contents.split(/\r?\n/)[0]?.trim();
-  if (!firstLine) return null;
-  const match = firstLine.match(/^gitdir:\s*(.+)$/i);
-  if (!match) return null;
-  const gitdirValue = match[1].trim();
-  if (!gitdirValue) return null;
-  return resolve(dirname(targetPath), gitdirValue);
+  if (!contents) return { gitDir: null, isWorktree: false };
+  const resolvedGitDir = resolveGitDirFromFile(targetPath, contents);
+  if (!resolvedGitDir) return { gitDir: null, isWorktree: false };
+  const isWorktree = isWorktreeGitDir(resolvedGitDir);
+  return { gitDir: resolvedGitDir, isWorktree };
+};
+
+const resolveGitDir = async (projectRoot: string) => {
+  const info = await resolveGitInfo(projectRoot);
+  return info.gitDir;
 };
 
 const resolveGitBranch = async (projectRoot: string) => {
@@ -152,6 +223,47 @@ const resolveGitBranch = async (projectRoot: string) => {
   if (!ref.startsWith(prefix)) return null;
   const branch = ref.slice(prefix.length).trim();
   return branch || null;
+};
+
+const listGitWorktrees = async (projectRoot: string, gitDir: string): Promise<WorktreeInfo[]> => {
+  const worktreesDir = join(gitDir, "worktrees");
+  const entries = await readdir(worktreesDir, { withFileTypes: true }).catch(() => null);
+  if (!entries) return [];
+
+  const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+  const projectRootReal = await realpath(projectRoot).catch(() => resolve(projectRoot));
+  const rootDirName = resolveRootDirName(projectRootReal);
+  const results: WorktreeInfo[] = [];
+  const seen = new Set<string>();
+  const sortedEntries = entries
+    .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
+    .map((entry) => ({
+      name: String(entry.name),
+    }))
+    .sort((a, b) => collator.compare(a.name, b.name));
+
+  for (const { name } of sortedEntries) {
+    const gitdirFile = join(worktreesDir, name, "gitdir");
+    const gitdirText = await readFile(gitdirFile, "utf8").catch(() => null);
+    if (!gitdirText) continue;
+    const resolvedGitdir = resolveGitDirFromFile(gitdirFile, gitdirText);
+    if (!resolvedGitdir) continue;
+    const gitdirStats = await lstat(resolvedGitdir).catch(() => null);
+    if (!gitdirStats || gitdirStats.isSymbolicLink()) continue;
+    const worktreeRoot = dirname(resolvedGitdir);
+    if (!(await dirExists(worktreeRoot))) continue;
+    const worktreeReal = await realpath(worktreeRoot).catch(() => null);
+    if (!worktreeReal) continue;
+    if (worktreeReal === projectRootReal) continue;
+    const key = worktreeReal.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const worktreeDirName = basename(worktreeReal) || basename(worktreeRoot);
+    const label = normalizeWorktreeLabel(rootDirName, worktreeDirName || worktreeReal);
+    results.push({ id: buildWorktreeId(worktreeReal), path: worktreeReal, label });
+  }
+
+  return results;
 };
 
 const isSafePrd = (prd: string) => {
@@ -190,6 +302,14 @@ const fileExists = async (path: string) => {
   if (stats.isSymbolicLink()) return false;
   if (!stats.isFile()) return false;
   if (stats.nlink > 1) return false;
+  return true;
+};
+
+const dirExists = async (path: string) => {
+  const stats = await lstat(path).catch(() => null);
+  if (!stats) return false;
+  if (stats.isSymbolicLink()) return false;
+  if (!stats.isDirectory()) return false;
   return true;
 };
 
@@ -320,18 +440,13 @@ const resolvePrdDir = async (root: string, prd: string) => {
   return prdReal;
 };
 
-export const listPrds = async (
+const collectPrds = async (
   root: string,
-  options: { sortOrder?: PrdSortOrder } = {},
-): Promise<PrdListPayload> => {
+  options: { collator: Intl.Collator; worktree?: WorktreeInfo },
+): Promise<PrdSummary[]> => {
   const rootReal = await realpath(root).catch(() => resolve(root));
-  const projectRoot = dirname(rootReal);
-  const rootLabel = resolveRootLabel(projectRoot);
-  const gitBranch = await resolveGitBranch(projectRoot).catch(() => null);
+  if (!(await dirExists(rootReal))) return [];
   const entries = await readDirEntries(rootReal);
-  const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
-  const sortOrder: PrdSortOrder = options.sortOrder === "desc" ? "desc" : "asc";
-
   const results: PrdSummary[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
@@ -373,26 +488,79 @@ export const listPrds = async (
       if (stats.nlink > 1) continue;
       docs.push(docId);
     }
-    docs.sort((a, b) => collator.compare(a, b));
+    docs.sort((a, b) => options.collator.compare(a, b));
     const dedupedDocs = docs.filter((docId, index, list) => {
       const key = docId.toLowerCase();
       return list.findIndex((candidate) => candidate.toLowerCase() === key) === index;
     });
 
     results.push({
-      id: entry.name,
+      id: options.worktree ? encodeWorktreePrdId(options.worktree.id, entry.name) : entry.name,
       label: entry.name,
       docs: dedupedDocs,
       progress,
+      worktree: options.worktree
+        ? { id: options.worktree.id, label: options.worktree.label }
+        : undefined,
     });
   }
+
+  return results;
+};
+
+export const listPrds = async (
+  root: string,
+  options: { sortOrder?: PrdSortOrder } = {},
+): Promise<PrdListPayload> => {
+  const rootReal = await realpath(root).catch(() => resolve(root));
+  const projectRoot = dirname(rootReal);
+  const rootLabel = resolveRootLabel(projectRoot);
+  const gitBranch = await resolveGitBranch(projectRoot).catch(() => null);
+  const gitInfo = await resolveGitInfo(projectRoot).catch(() => ({
+    gitDir: null,
+    isWorktree: false,
+  }));
+  const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+  const sortOrder: PrdSortOrder = options.sortOrder === "desc" ? "desc" : "asc";
+
+  const results: PrdSummary[] = [];
+  results.push(...(await collectPrds(rootReal, { collator })));
+  if (gitInfo.gitDir && !gitInfo.isWorktree) {
+    const tasksDirName = basename(rootReal);
+    let worktrees: WorktreeInfo[] = [];
+    try {
+      worktrees = await listGitWorktrees(projectRoot, gitInfo.gitDir);
+    } catch {
+      worktrees = [];
+    }
+    for (const worktree of worktrees) {
+      const tasksRoot = resolve(worktree.path, tasksDirName);
+      try {
+        const prds = await collectPrds(tasksRoot, { collator, worktree });
+        results.push(...prds);
+      } catch {
+        continue;
+      }
+    }
+  }
+  const comparePrds = (a: PrdSummary, b: PrdSummary) => {
+    const labelCompare = collator.compare(a.label, b.label);
+    if (labelCompare !== 0) return labelCompare;
+    const worktreeLabelA = a.worktree?.label ?? "";
+    const worktreeLabelB = b.worktree?.label ?? "";
+    const worktreeLabelCompare = collator.compare(worktreeLabelA, worktreeLabelB);
+    if (worktreeLabelCompare !== 0) return worktreeLabelCompare;
+    const worktreeIdA = a.worktree?.id ?? "";
+    const worktreeIdB = b.worktree?.id ?? "";
+    return collator.compare(worktreeIdA, worktreeIdB);
+  };
 
   return {
     meta: { rootLabel, gitBranch, rootPath: projectRoot },
     prds:
       sortOrder === "desc"
-        ? results.sort((a, b) => collator.compare(b.label, a.label))
-        : results.sort((a, b) => collator.compare(a.label, b.label)),
+        ? results.sort((a, b) => comparePrds(b, a))
+        : results.sort((a, b) => comparePrds(a, b)),
   };
 };
 
