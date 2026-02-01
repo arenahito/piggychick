@@ -59,12 +59,14 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Normalize `prdSort` query params with trim/lowercase and apply the same order to all `/api/roots` responses.
 - Client root requests should include `prdSort=desc` to keep PRDs sorted descending.
 - Use `normalizeProgress` for incomplete filters so missing or invalid progress counts as `not_started`.
+- Reserve worktree-encoded PRD IDs by disallowing `:` and `wt:` prefixes in PRD folder names.
 
 ## UI and accessibility
 
 - Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0`.
 - Add `role="img"` with `aria-label` for emoji indicators.
 - Render PRD markdown as separate blocks (plan first) and include a small header for each non-plan section.
+- When displaying worktree info under a PRD title, render it as a muted single-line label with ellipsis (no uppercase transform).
 - For emoji-only toolbar buttons, override text transform and letter spacing to avoid distorting emoji glyphs.
 - Use a hidden checkbox with a visible switch track for toggle UIs to preserve accessibility.
 - Use a dedicated `role="status"` live region for copy feedback instead of updating the button label directly.
@@ -76,10 +78,12 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Normalize doc IDs (trim, strip `.md`, case-insensitive de-duplication) before sorting with `Intl.Collator("en", { sensitivity: "base", numeric: true })`.
 - Guard async PRD loads with a request token so stale responses do not overwrite the current selection.
 - When filters hide the active PRD in the mobile selector, insert a disabled placeholder option to avoid implying a different selection.
+- Append worktree labels in parentheses in the mobile selector for disambiguation.
 
 ## Git metadata
 
 - Handle `.git` as a directory, file, or symlink and resolve `gitdir:` paths relative to the `.git` file location.
+- Only treat gitdirs under `.git/worktrees/<name>` as worktrees, and normalize separators when parsing gitdir paths.
 - Return `null` on git metadata errors or detached HEAD to keep listing APIs stable.
 
 ## Client state
