@@ -110,10 +110,28 @@ const writeShowIncompleteOnly = (value: boolean) => {
   }
 };
 
-const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | null => {
+type HashRoute =
+  | { kind: "config"; hasExtra: boolean }
+  | { kind: "prd"; rootId: string; prdId: string; hasExtra: boolean };
+
+const settingsHash = "#/settings";
+
+const setSettingsHash = () => {
+  if (window.location.hash !== settingsHash) {
+    window.location.hash = settingsHash;
+  }
+};
+
+const parseHash = (): HashRoute | null => {
   const raw = window.location.hash.replace(/^#\/?/, "");
   if (!raw) return null;
   const [rootRaw, prdRaw, ...extraParts] = raw.split("/");
+  const normalizedRoot = rootRaw.toLowerCase();
+  const hasTrailing = typeof prdRaw === "string";
+  const hasExtra = hasTrailing || extraParts.some((part) => part.length > 0);
+  if ((normalizedRoot === "settings" || normalizedRoot === "config") && (!prdRaw || prdRaw === "")) {
+    return { kind: "config", hasExtra };
+  }
   if (rootRaw && rootRaw.includes(":")) {
     try {
       const decoded = decodeURIComponent(rootRaw);
@@ -121,8 +139,8 @@ const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | nul
       if (separator <= 0 || separator >= decoded.length - 1) return null;
       const rootId = decoded.slice(0, separator);
       const prdId = decoded.slice(separator + 1);
-      const hasExtra = prdRaw ? true : extraParts.some((part) => part.length > 0);
-      return rootId && prdId ? { rootId, prdId, hasExtra } : null;
+      const hasExtraSegment = prdRaw ? true : extraParts.some((part) => part.length > 0);
+      return rootId && prdId ? { kind: "prd", rootId, prdId, hasExtra: hasExtraSegment } : null;
     } catch {
       return null;
     }
@@ -131,8 +149,8 @@ const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | nul
     try {
       const rootId = decodeURIComponent(rootRaw);
       const prdId = decodeURIComponent(prdRaw);
-      const hasExtra = extraParts.some((part) => part.length > 0);
-      return rootId && prdId ? { rootId, prdId, hasExtra } : null;
+      const hasExtraSegment = extraParts.some((part) => part.length > 0);
+      return rootId && prdId ? { kind: "prd", rootId, prdId, hasExtra: hasExtraSegment } : null;
     } catch {
       return null;
     }
@@ -144,8 +162,8 @@ const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | nul
     if (separator <= 0 || separator >= decoded.length - 1) return null;
     const rootId = decoded.slice(0, separator);
     const prdId = decoded.slice(separator + 1);
-    const hasExtra = extraParts.some((part) => part.length > 0);
-    return rootId && prdId ? { rootId, prdId, hasExtra } : null;
+    const hasExtraSegment = extraParts.some((part) => part.length > 0);
+    return rootId && prdId ? { kind: "prd", rootId, prdId, hasExtra: hasExtraSegment } : null;
   } catch {
     return null;
   }
@@ -153,6 +171,21 @@ const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | nul
 
 const setHash = (rootId: string, prdId: string) => {
   window.location.hash = `#/${encodeURIComponent(rootId)}/${encodeURIComponent(prdId)}`;
+};
+
+const isSelectionValid = (selection: Selection | null) => {
+  if (!selection) return false;
+  const rootEntry = state.roots.find((root) => root.id === selection.rootId);
+  if (!rootEntry) return false;
+  return rootEntry.prds.some((entry) => entry.id === selection.prdId);
+};
+
+const navigateToSelection = () => {
+  if (isSelectionValid(state.selection) && state.selection) {
+    setHash(state.selection.rootId, state.selection.prdId);
+    return;
+  }
+  window.location.hash = "";
 };
 
 const findFirstSelection = (): Selection | null => {
@@ -165,31 +198,48 @@ const findFirstSelection = (): Selection | null => {
   return null;
 };
 
-const ensureSelection = () => {
+const ensureSelection = (
+  route: HashRoute | null,
+): { didUpdateHash: boolean; kind: "config" | "plan" } => {
   let updatedHash = false;
-  const parsed = parseHash();
-  if (parsed) {
-    const rootEntry = state.roots.find((root) => root.id === parsed.rootId);
-    const prd = rootEntry?.prds.find((entry) => entry.id === parsed.prdId);
+  if (route?.kind === "config") {
+    if (route.hasExtra) {
+      setSettingsHash();
+      updatedHash = true;
+    }
+    if (isSelectionValid(state.selection)) {
+      return { didUpdateHash: updatedHash, kind: "config" };
+    }
+    const fallback = findFirstSelection();
+    if (!fallback) {
+      state.selection = null;
+      return { didUpdateHash: updatedHash, kind: "config" };
+    }
+    state.selection = fallback;
+    return { didUpdateHash: updatedHash, kind: "config" };
+  }
+  if (route?.kind === "prd") {
+    const rootEntry = state.roots.find((root) => root.id === route.rootId);
+    const prd = rootEntry?.prds.find((entry) => entry.id === route.prdId);
     if (rootEntry && prd) {
       state.selection = { rootId: rootEntry.id, prdId: prd.id };
-      if (parsed.hasExtra) {
+      if (route.hasExtra) {
         setHash(rootEntry.id, prd.id);
         updatedHash = true;
       }
-      return updatedHash;
+      return { didUpdateHash: updatedHash, kind: "plan" };
     }
   }
 
   const fallback = findFirstSelection();
   if (!fallback) {
     state.selection = null;
-    return updatedHash;
+    return { didUpdateHash: updatedHash, kind: "plan" };
   }
   state.selection = fallback;
   setHash(fallback.rootId, fallback.prdId);
   updatedHash = true;
-  return updatedHash;
+  return { didUpdateHash: updatedHash, kind: "plan" };
 };
 
 const setViewMode = (mode: "plan" | "config" | "empty") => {
@@ -360,6 +410,7 @@ const closeConfigEditor = async () => {
   configHandle = null;
   state.config = null;
   setViewMode("empty");
+  refreshSidebar();
   await loadSelection();
 };
 
@@ -397,7 +448,7 @@ const openConfigEditor = async () => {
         void saveConfigChanges();
       },
       onCancel: () => {
-        void closeConfigEditor();
+        navigateToSelection();
       },
     });
     configHandle.focus();
@@ -408,7 +459,7 @@ const openConfigEditor = async () => {
       container,
       message,
       () => void openConfigEditor(),
-      () => void closeConfigEditor(),
+      () => navigateToSelection(),
     );
   }
 };
@@ -484,7 +535,7 @@ const refreshSidebar = () => {
     state.showIncompleteOnly,
     state.viewMode === "config",
     () => {
-      void openConfigEditor();
+      setSettingsHash();
     },
     (rootId, prdId) => {
       setHash(rootId, prdId);
@@ -651,11 +702,16 @@ const syncRoots = async (
   writeCollapsedRoots(state.collapsedRoots);
   state.expandedRoots = pruneRecord(state.expandedRoots);
   writeExpandedRoots(state.expandedRoots);
-  const didUpdateHash = ensureSelection();
+  const route = parseHash();
+  const { didUpdateHash, kind } = ensureSelection(route);
   refreshSidebar();
+  if (kind === "config") {
+    return { didUpdateHash, kind };
+  }
   if (allowLoadSelection && state.viewMode !== "config" && !didUpdateHash) {
     await loadSelection();
   }
+  return { didUpdateHash, kind };
 };
 
 const bootstrap = async () => {
@@ -664,7 +720,10 @@ const bootstrap = async () => {
   state.showIncompleteOnly = readShowIncompleteOnly();
   try {
     const payload = await fetchRoots();
-    await syncRoots(payload);
+    const { kind } = await syncRoots(payload);
+    if (kind === "config") {
+      await openConfigEditor();
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load directories";
     renderError(message);
@@ -672,9 +731,17 @@ const bootstrap = async () => {
 };
 
 window.addEventListener("hashchange", async () => {
-  const didUpdateHash = ensureSelection();
+  const route = parseHash();
+  const { didUpdateHash, kind } = ensureSelection(route);
   refreshSidebar();
+  if (kind === "config") {
+    if (state.viewMode !== "config") {
+      await openConfigEditor();
+    }
+    return;
+  }
   if (state.viewMode === "config") {
+    await closeConfigEditor();
     return;
   }
   if (!didUpdateHash) {
