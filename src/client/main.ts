@@ -228,28 +228,6 @@ const filterPrds = (prds: RootSummary["prds"]) => {
   return prds.filter((prd) => normalizeProgress(prd.progress) !== "done");
 };
 
-const ensureSelectionVisible = () => {
-  if (!state.selection) return;
-  const rootEntry = state.roots.find((root) => root.id === state.selection?.rootId);
-  if (!rootEntry) return;
-  const filtered = filterPrds(rootEntry.prds);
-  const index = filtered.findIndex((prd) => prd.id === state.selection?.prdId);
-  if (index < 0) return;
-  let didChange = false;
-  if (state.collapsedRoots[rootEntry.id]) {
-    state.collapsedRoots[rootEntry.id] = false;
-    didChange = true;
-  }
-  if (filtered.length > 5 && index >= 5 && state.expandedRoots[rootEntry.id] !== true) {
-    state.expandedRoots[rootEntry.id] = true;
-    didChange = true;
-  }
-  if (didChange) {
-    writeCollapsedRoots(state.collapsedRoots);
-    writeExpandedRoots(state.expandedRoots);
-  }
-};
-
 const updateMobileSelect = () => {
   const select = layout.mobileSelect;
   select.innerHTML = "";
@@ -488,7 +466,6 @@ const saveConfigChanges = async () => {
 };
 
 const refreshSidebar = () => {
-  ensureSelectionVisible();
   renderSidebar(
     layout.sidebarContent,
     layout.sidebarFooter,
