@@ -11,7 +11,7 @@
       "id": "49b7af1e-026f-4ff2-90b7-0e1cc603e064",
       "title": "F1: Add config editor view and wiring",
       "category": "frontend",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["02ba8f2b-9bf7-4769-8e51-83aedb31a33f"]
     },
     {

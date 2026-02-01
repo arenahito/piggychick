@@ -1,4 +1,10 @@
-import { fetchMarkdown, fetchPlan, fetchRoots, type RootSummary } from "./api";
+import { fetchConfig, fetchMarkdown, fetchPlan, fetchRoots, saveConfig, type RootSummary } from "./api";
+import {
+  renderConfigEditor,
+  renderConfigEditorError,
+  type ConfigEditorHandle,
+  type ConfigToastState,
+} from "./components/config-editor";
 import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
@@ -22,15 +28,21 @@ const state: {
   selection: Selection | null;
   collapsedRoots: Record<string, boolean>;
   lastPlan: { rootId: string; prdId: string; planMarkdown: string; planJsonText: string } | null;
+  viewMode: "plan" | "config";
+  config: { path: string; text: string; isSaving: boolean; toast: ConfigToastState | null } | null;
 } = {
   roots: [],
   selection: null,
   collapsedRoots: {},
   lastPlan: null,
+  viewMode: "plan",
+  config: null,
 };
 
 const collapsedRootsKey = "pgch.sidebarCollapsedRoots";
 let selectionRequest = 0;
+let configRequest = 0;
+let configHandle: ConfigEditorHandle | null = null;
 
 const readCollapsedRoots = () => {
   try {
@@ -134,7 +146,14 @@ const ensureSelection = () => {
   return updatedHash;
 };
 
+const setViewMode = (mode: "plan" | "config" | "empty") => {
+  layout.content.classList.toggle("app-content--plan", mode === "plan");
+  layout.content.classList.toggle("app-content--config", mode === "config");
+};
+
 const renderEmpty = (message: string) => {
+  state.viewMode = "plan";
+  setViewMode("empty");
   layout.contentBody.innerHTML = "";
   const note = document.createElement("div");
   note.className = "content-note";
@@ -142,15 +161,9 @@ const renderEmpty = (message: string) => {
   layout.contentBody.append(note);
 };
 
-const setContentMode = (hasSelection: boolean) => {
-  if (hasSelection) {
-    layout.content.classList.add("app-content--plan");
-  } else {
-    layout.content.classList.remove("app-content--plan");
-  }
-};
-
 const renderContent = (body: string) => {
+  state.viewMode = "plan";
+  setViewMode("plan");
   layout.contentBody.innerHTML = "";
   const wrapper = document.createElement("div");
   wrapper.className = "content-markdown markdown-body";
@@ -161,6 +174,8 @@ const renderContent = (body: string) => {
 };
 
 const renderError = (message: string) => {
+  state.viewMode = "plan";
+  setViewMode("empty");
   layout.contentBody.innerHTML = "";
   const note = document.createElement("div");
   note.className = "content-error";
@@ -242,6 +257,149 @@ layout.mobileSelect.addEventListener("change", (event) => {
   }
 });
 
+let configToastTimer: number | null = null;
+
+const setConfigToast = (toast: ConfigToastState | null) => {
+  if (configToastTimer !== null) {
+    window.clearTimeout(configToastTimer);
+    configToastTimer = null;
+  }
+  if (state.config) {
+    state.config.toast = toast;
+  }
+  if (configHandle) {
+    configHandle.setToast(toast);
+  }
+  if (toast) {
+    configToastTimer = window.setTimeout(() => {
+      if (state.config) {
+        state.config.toast = null;
+      }
+      configHandle?.setToast(null);
+    }, 2500);
+  }
+};
+
+const closeConfigEditor = async () => {
+  state.viewMode = "plan";
+  configRequest += 1;
+  if (configToastTimer !== null) {
+    window.clearTimeout(configToastTimer);
+    configToastTimer = null;
+  }
+  configHandle = null;
+  state.config = null;
+  setViewMode("empty");
+  await loadSelection();
+};
+
+const openConfigEditor = async () => {
+  if (state.viewMode === "config") {
+    return;
+  }
+  state.viewMode = "config";
+  setViewMode("config");
+  configHandle = null;
+  layout.contentBody.innerHTML = "";
+  const container = document.createElement("div");
+  container.className = "config-container";
+  layout.contentBody.append(container);
+  const note = document.createElement("div");
+  note.className = "content-note";
+  note.textContent = "Loading config…";
+  container.append(note);
+
+  const requestId = ++configRequest;
+  try {
+    const payload = await fetchConfig();
+    if (requestId !== configRequest) return;
+    state.config = { path: payload.path, text: payload.text, isSaving: false, toast: null };
+    configHandle = renderConfigEditor(container, {
+      path: payload.path,
+      text: payload.text,
+      isSaving: false,
+      onChange: (value) => {
+        if (state.config) {
+          state.config.text = value;
+        }
+      },
+      onSave: () => {
+        void saveConfigChanges();
+      },
+      onCancel: () => {
+        void closeConfigEditor();
+      },
+    });
+    configHandle.focus();
+  } catch (error) {
+    if (requestId !== configRequest) return;
+    const message = error instanceof Error ? error.message : "Failed to load config";
+    renderConfigEditorError(container, message, () => void openConfigEditor(), () =>
+      void closeConfigEditor(),
+    );
+  }
+};
+
+const saveConfigChanges = async () => {
+  if (!state.config || !configHandle || state.config.isSaving) return;
+  const requestId = configRequest;
+  const activeConfig = state.config;
+  const activeHandle = configHandle;
+  activeConfig.isSaving = true;
+  activeHandle.setSaving(true);
+  setConfigToast(null);
+  try {
+    await saveConfig(activeConfig.text);
+    if (
+      state.viewMode !== "config" ||
+      configRequest !== requestId ||
+      state.config !== activeConfig ||
+      configHandle !== activeHandle
+    ) {
+      return;
+    }
+    activeConfig.isSaving = false;
+    activeHandle.setSaving(false);
+    setConfigToast({ message: "Saved", variant: "success" });
+    try {
+      const payload = await fetchRoots();
+      if (
+        state.viewMode !== "config" ||
+        configRequest !== requestId ||
+        state.config !== activeConfig ||
+        configHandle !== activeHandle
+      ) {
+        return;
+      }
+      await syncRoots(payload, { allowLoadSelection: false });
+    } catch (error) {
+      if (
+        state.viewMode !== "config" ||
+        configRequest !== requestId ||
+        state.config !== activeConfig ||
+        configHandle !== activeHandle
+      ) {
+        return;
+      }
+      const message = error instanceof Error ? error.message : "Failed to refresh roots";
+      setConfigToast({ message, variant: "warning" });
+    }
+  } catch (error) {
+    if (
+      state.viewMode !== "config" ||
+      configRequest !== requestId ||
+      state.config !== activeConfig ||
+      configHandle !== activeHandle
+    ) {
+      return;
+    }
+    activeConfig.isSaving = false;
+    activeHandle.setSaving(false);
+    const message = error instanceof Error ? error.message : "Failed to save config";
+    setConfigToast({ message, variant: "error" });
+  }
+};
+
 const refreshSidebar = () => {
   renderSidebar(
     layout.sidebarContent,
@@ -249,6 +407,10 @@ const refreshSidebar = () => {
     state.roots,
     state.selection,
     state.collapsedRoots,
+    state.viewMode === "config",
+    () => {
+      void openConfigEditor();
+    },
     (rootId, prdId) => {
       setHash(rootId, prdId);
     },
@@ -262,10 +424,12 @@ const refreshSidebar = () => {
 };
 
 const loadSelection = async () => {
+  if (state.viewMode === "config") {
+    return;
+  }
   if (!state.selection) {
-    setContentMode(false);
     if (state.roots.length === 0) {
-      renderEmpty("No directories configured. Use the CLI to add a project root.");
+      renderEmpty("No directories configured. Use the CLI or Settings to add a project root.");
     } else {
       renderEmpty("No PRDs found in configured roots.");
     }
@@ -273,7 +437,6 @@ const loadSelection = async () => {
   }
 
   const { rootId, prdId } = state.selection;
-  setContentMode(true);
   renderContent("Loading…");
 
   const requestId = ++selectionRequest;
@@ -350,11 +513,15 @@ const loadSelection = async () => {
   }
 };
 
-const syncRoots = async (payload: { roots: RootSummary[] }) => {
+const syncRoots = async (
+  payload: { roots: RootSummary[] },
+  options: { allowLoadSelection?: boolean } = {},
+) => {
+  const allowLoadSelection = options.allowLoadSelection ?? true;
   state.roots = payload.roots;
   const didUpdateHash = ensureSelection();
   refreshSidebar();
-  if (!didUpdateHash) {
+  if (allowLoadSelection && state.viewMode !== "config" && !didUpdateHash) {
     await loadSelection();
   }
 };
@@ -373,6 +540,9 @@ const bootstrap = async () => {
 window.addEventListener("hashchange", async () => {
   const didUpdateHash = ensureSelection();
   refreshSidebar();
+  if (state.viewMode === "config") {
+    return;
+  }
   if (!didUpdateHash) {
     await loadSelection();
   }

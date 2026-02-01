@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { addRoot, fetchMarkdown, fetchPlan, fetchRoots, removeRoot } from "../../src/client/api";
+import {
+  addRoot,
+  fetchConfig,
+  fetchMarkdown,
+  fetchPlan,
+  fetchRoots,
+  removeRoot,
+  saveConfig,
+} from "../../src/client/api";
 
 const originalFetch = globalThis.fetch;
 
@@ -8,7 +16,7 @@ afterEach(() => {
 });
 
 describe("api helpers", () => {
-  test("fetches roots, plan, and markdown", async () => {
+  test("fetches roots, plan, markdown, and config", async () => {
     globalThis.fetch = async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url.endsWith("/api/roots") && !url.includes("/api/roots/")) {
@@ -26,6 +34,12 @@ describe("api helpers", () => {
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
+      }
+      if (url.endsWith("/api/config")) {
+        return new Response(JSON.stringify({ path: "/config.jsonc", text: "{}" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       if (url.includes("/plan")) {
         return new Response(
@@ -47,6 +61,9 @@ describe("api helpers", () => {
 
     const doc = await fetchMarkdown("root", "alpha", "notes");
     expect(doc.markdown).toContain("Notes");
+
+    const config = await fetchConfig();
+    expect(config.path).toContain("config");
   });
 
   test("adds and removes roots", async () => {
@@ -64,6 +81,21 @@ describe("api helpers", () => {
     await removeRoot("root");
     expect(calls).toContain("POST /api/roots");
     expect(calls).toContain("DELETE /api/roots/root");
+  });
+
+  test("saves config text", async () => {
+    const calls: string[] = [];
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      return new Response(JSON.stringify({ path: "/config.jsonc", text: "{}" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    await saveConfig("{}");
+    expect(calls).toContain("PUT /api/config");
   });
 
   test("throws message from error payload", async () => {

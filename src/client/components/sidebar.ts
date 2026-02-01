@@ -15,6 +15,8 @@ export const renderSidebar = (
   roots: RootSummary[],
   selection: Selection | null,
   collapsed: Record<string, boolean>,
+  isConfigOpen: boolean,
+  onOpenConfig: () => void,
   onSelect: SelectHandler,
   onToggleCollapse: ToggleHandler,
 ) => {
@@ -175,5 +177,13 @@ export const renderSidebar = (
 
   const toolbar = document.createElement("div");
   toolbar.className = "sidebar-toolbar";
+  const settingsButton = document.createElement("button");
+  settingsButton.type = "button";
+  settingsButton.className = "sidebar-tool-button";
+  settingsButton.textContent = "Settings";
+  settingsButton.setAttribute("aria-label", "Open settings");
+  settingsButton.disabled = isConfigOpen;
+  settingsButton.addEventListener("click", () => onOpenConfig());
+  toolbar.append(settingsButton);
   footer.append(toolbar);
 };
