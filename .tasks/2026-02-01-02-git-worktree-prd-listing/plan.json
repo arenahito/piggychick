@@ -21,7 +21,7 @@
     {
       "id": "af7ff448-9425-4f89-a612-28bd3c2c0009",
       "title": "F2: Clarify worktree PRDs in mobile selector",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["74aa0776-d324-44c9-8c1a-c9928f5fed2b"]
     }
   ]

@@ -15,3 +15,7 @@
 
 - Use a dedicated text wrapper with `flex: 1` and `min-width: 0` to keep status icons aligned while supporting multi-line labels.
 - Render the worktree label as a separate muted line with ellipsis to avoid truncating the PRD title.
+
+## F2: Clarify worktree PRDs in mobile selector
+
+- Append the worktree label in parentheses in the mobile selector to disambiguate PRDs when the sidebar is hidden.

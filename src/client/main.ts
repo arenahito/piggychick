@@ -273,9 +273,11 @@ const updateMobileSelect = () => {
       : branchText
         ? `@${branchText}`
         : "";
+    const worktreeLabel = entry.prd.worktree?.label;
+    const prdLabel = worktreeLabel ? `${entry.prd.label} (${worktreeLabel})` : entry.prd.label;
     option.textContent = rootPrefix
-      ? `${rootPrefix} / ${entry.prd.label} ${progressEmoji}`
-      : `${entry.prd.label} ${progressEmoji}`;
+      ? `${rootPrefix} / ${prdLabel} ${progressEmoji}`
+      : `${prdLabel} ${progressEmoji}`;
     if (
       selectionVisible &&
       state.selection &&
