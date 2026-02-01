@@ -56,6 +56,12 @@ const decodeSegment = (value: string) => {
   }
 };
 
+const resolvePrdSort = (url: URL) => {
+  const raw = url.searchParams.get("prdSort");
+  const normalized = raw?.trim().toLowerCase();
+  return normalized === "desc" ? "desc" : "asc";
+};
+
 export const handleApiRequest = async (request: Request, configPath = resolveConfigPath()) => {
   const url = new URL(request.url);
   const segments = url.pathname.split("/").filter(Boolean);
@@ -66,7 +72,7 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
   if (segments[1] === "roots" && segments.length === 2) {
     if (request.method === "GET") {
       try {
-        const payload = await listRoots(configPath);
+        const payload = await listRoots(configPath, { sortOrder: resolvePrdSort(url) });
         return new Response(JSON.stringify(payload), { headers: jsonHeaders });
       } catch (error) {
         return handleTasksError(error);
@@ -100,7 +106,7 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
           };
           await saveConfigFile(toConfigFile(updated), configPath);
         }
-        const payload = await listRoots(configPath);
+        const payload = await listRoots(configPath, { sortOrder: resolvePrdSort(url) });
         return new Response(JSON.stringify(payload), { headers: jsonHeaders });
       } catch (error) {
         return handleTasksError(error);
@@ -155,7 +161,7 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
           toConfigFile({ tasksDir: normalized.tasksDir, roots: remaining }),
           configPath,
         );
-        const payload = await listRoots(configPath);
+        const payload = await listRoots(configPath, { sortOrder: resolvePrdSort(url) });
         return new Response(JSON.stringify(payload), { headers: jsonHeaders });
       } catch (error) {
         return handleTasksError(error);

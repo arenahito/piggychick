@@ -18,6 +18,7 @@ export type PrdSummary = {
 };
 
 export type PrdProgress = "not_started" | "in_progress" | "done";
+export type PrdSortOrder = "asc" | "desc";
 
 export type PrdListMeta = {
   rootLabel: string;
@@ -319,13 +320,17 @@ const resolvePrdDir = async (root: string, prd: string) => {
   return prdReal;
 };
 
-export const listPrds = async (root: string): Promise<PrdListPayload> => {
+export const listPrds = async (
+  root: string,
+  options: { sortOrder?: PrdSortOrder } = {},
+): Promise<PrdListPayload> => {
   const rootReal = await realpath(root).catch(() => resolve(root));
   const projectRoot = dirname(rootReal);
   const rootLabel = resolveRootLabel(projectRoot);
   const gitBranch = await resolveGitBranch(projectRoot).catch(() => null);
   const entries = await readDirEntries(rootReal);
   const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+  const sortOrder: PrdSortOrder = options.sortOrder === "desc" ? "desc" : "asc";
 
   const results: PrdSummary[] = [];
   for (const entry of entries) {
@@ -384,18 +389,24 @@ export const listPrds = async (root: string): Promise<PrdListPayload> => {
 
   return {
     meta: { rootLabel, gitBranch, rootPath: projectRoot },
-    prds: results.sort((a, b) => collator.compare(a.label, b.label)),
+    prds:
+      sortOrder === "desc"
+        ? results.sort((a, b) => collator.compare(b.label, a.label))
+        : results.sort((a, b) => collator.compare(a.label, b.label)),
   };
 };
 
-export const listRoots = async (configPath = resolveConfigPath()): Promise<RootsPayload> => {
+export const listRoots = async (
+  configPath = resolveConfigPath(),
+  options: { sortOrder?: PrdSortOrder } = {},
+): Promise<RootsPayload> => {
   const config = await loadConfigFile(configPath);
   const normalized = await normalizeConfig(config, { path: configPath });
   const entries = buildRootEntries(normalized.roots);
   const roots: RootSummary[] = [];
   for (const entry of entries) {
     const tasksRoot = resolveTasksDirPath(entry.root.path, entry.root.tasksDir);
-    const payload = await listPrds(tasksRoot);
+    const payload = await listPrds(tasksRoot, options);
     roots.push({
       id: entry.id,
       path: entry.root.path,

@@ -76,6 +76,17 @@ describe("listPrds", () => {
     });
   });
 
+  test("sorts PRDs descending when requested", async () => {
+    await withTempRoot(async (root) => {
+      await createPrd(root, "alpha");
+      await createPrd(root, "beta");
+      await createPrd(root, "gamma");
+
+      const payload = await listPrds(root, { sortOrder: "desc" });
+      expect(payload.prds.map((prd) => prd.id)).toEqual(["gamma", "beta", "alpha"]);
+    });
+  });
+
   test("collects docs, excludes plan.md, and filters invalid IDs", async () => {
     await withTempRoot(async (root) => {
       const prdDir = await createPrd(root, "docs", {

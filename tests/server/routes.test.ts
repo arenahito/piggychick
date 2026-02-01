@@ -47,6 +47,111 @@ describe("handleApiRequest", () => {
     });
   });
 
+  test("sorts PRDs descending with prdSort=DESC", async () => {
+    await withTempRoot(async (root, configPath) => {
+      await createPrd(join(root, ".tasks"), "alpha");
+      await createPrd(join(root, ".tasks"), "beta");
+      const request = new Request("http://localhost/api/roots?prdSort=DESC");
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      const prdIds = payload.roots[0]?.prds.map((prd: { id: string }) => prd.id);
+      expect(prdIds).toEqual(["beta", "alpha"]);
+    });
+  });
+
+  test("sorts PRDs descending with whitespace around prdSort", async () => {
+    await withTempRoot(async (root, configPath) => {
+      await createPrd(join(root, ".tasks"), "alpha");
+      await createPrd(join(root, ".tasks"), "beta");
+      const request = new Request("http://localhost/api/roots?prdSort=%20DESC%20");
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      const prdIds = payload.roots[0]?.prds.map((prd: { id: string }) => prd.id);
+      expect(prdIds).toEqual(["beta", "alpha"]);
+    });
+  });
+
+  test("falls back to ascending order for invalid prdSort", async () => {
+    await withTempRoot(async (root, configPath) => {
+      await createPrd(join(root, ".tasks"), "alpha");
+      await createPrd(join(root, ".tasks"), "beta");
+      const request = new Request("http://localhost/api/roots?prdSort=sideways");
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      const prdIds = payload.roots[0]?.prds.map((prd: { id: string }) => prd.id);
+      expect(prdIds).toEqual(["alpha", "beta"]);
+    });
+  });
+
+  test("applies prdSort to POST /api/roots responses", async () => {
+    await withTempRoot(async (root, configPath) => {
+      await createPrd(join(root, ".tasks"), "alpha");
+      await createPrd(join(root, ".tasks"), "beta");
+      const extraRoot = await createTempDir("pgch-extra");
+      const extraTasks = join(extraRoot, ".tasks");
+      await mkdir(extraTasks, { recursive: true });
+      await createPrd(extraTasks, "gamma");
+      try {
+        const request = new Request("http://localhost/api/roots?prdSort=DESC", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: extraRoot }),
+        });
+        const response = await handleApiRequest(request, configPath);
+        expect(response.status).toBe(200);
+        const payload = await response.json();
+        const targetRoot = payload.roots.find(
+          (entry: { meta?: { rootPath?: string } }) => entry.meta?.rootPath === root,
+        );
+        const prdIds = targetRoot?.prds.map((prd: { id: string }) => prd.id);
+        expect(prdIds).toEqual(["beta", "alpha"]);
+      } finally {
+        await removeTempDir(extraRoot);
+      }
+    });
+  });
+
+  test("applies prdSort to DELETE /api/roots responses", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const extraRoot = await createTempDir("pgch-extra");
+      const extraTasks = join(extraRoot, ".tasks");
+      await mkdir(extraTasks, { recursive: true });
+      await createPrd(extraTasks, "alpha");
+      await createPrd(extraTasks, "beta");
+      try {
+        const addRequest = new Request("http://localhost/api/roots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: extraRoot }),
+        });
+        const addResponse = await handleApiRequest(addRequest, configPath);
+        expect(addResponse.status).toBe(200);
+        const listRequest = new Request("http://localhost/api/roots");
+        const listResponse = await handleApiRequest(listRequest, configPath);
+        const listPayload = await listResponse.json();
+        const rootId = listPayload.roots.find(
+          (entry: { meta?: { rootPath?: string } }) => entry.meta?.rootPath === root,
+        )?.id;
+        const deleteRequest = new Request(`http://localhost/api/roots/${rootId}?prdSort=DESC`, {
+          method: "DELETE",
+        });
+        const deleteResponse = await handleApiRequest(deleteRequest, configPath);
+        expect(deleteResponse.status).toBe(200);
+        const deletePayload = await deleteResponse.json();
+        const remainingRoot = deletePayload.roots.find(
+          (entry: { meta?: { rootPath?: string } }) => entry.meta?.rootPath === extraRoot,
+        );
+        const prdIds = remainingRoot?.prds.map((prd: { id: string }) => prd.id);
+        expect(prdIds).toEqual(["beta", "alpha"]);
+      } finally {
+        await removeTempDir(extraRoot);
+      }
+    });
+  });
+
   test("returns TasksError for invalid PRD id", async () => {
     await withTempRoot(async (root, configPath) => {
       await createPrd(join(root, ".tasks"), "alpha");
