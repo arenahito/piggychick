@@ -21,7 +21,7 @@
     {
       "id": "de35f41f-d8d0-4073-be71-f8bec827c100",
       "title": "F1: Client API + state for multi-root",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["57a81cf9-099a-44cb-a12a-9bfd7b7c2c47"]
     },
     {

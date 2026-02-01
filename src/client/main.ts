@@ -1,8 +1,8 @@
-import { fetchMarkdown, fetchPlan, fetchPrds, type PrdListMeta, type PrdSummary } from "./api";
+import { addRoot, fetchMarkdown, fetchPlan, fetchRoots, removeRoot, type RootSummary } from "./api";
 import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
-import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
+import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
 import { normalizeProgress, progressToEmoji } from "./progress";
 import "./styles.css";
 
@@ -18,80 +18,97 @@ const currentTheme = "dark";
 setMermaidTheme("dark");
 
 const state: {
-  prds: PrdSummary[];
-  rootMeta: PrdListMeta | null;
+  roots: RootSummary[];
   selection: Selection | null;
-  sidebarCollapsed: boolean;
-  lastPlan: { prdId: string; planMarkdown: string; planJsonText: string } | null;
+  collapsedRoots: Record<string, boolean>;
+  lastPlan: { rootId: string; prdId: string; planMarkdown: string; planJsonText: string } | null;
 } = {
-  prds: [],
-  rootMeta: null,
+  roots: [],
   selection: null,
-  sidebarCollapsed: false,
+  collapsedRoots: {},
   lastPlan: null,
 };
 
-const sidebarCollapsedKey = "pgch.sidebarCollapsed";
+const collapsedRootsKey = "pgch.sidebarCollapsedRoots";
 let selectionRequest = 0;
 
-const readSidebarCollapsed = () => {
+const readCollapsedRoots = () => {
   try {
-    return localStorage.getItem(sidebarCollapsedKey) === "true";
+    const raw = localStorage.getItem(collapsedRootsKey);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
   } catch {
-    return false;
+    return {};
   }
 };
 
-const writeSidebarCollapsed = (value: boolean) => {
+const writeCollapsedRoots = (value: Record<string, boolean>) => {
   try {
-    localStorage.setItem(sidebarCollapsedKey, value ? "true" : "false");
+    localStorage.setItem(collapsedRootsKey, JSON.stringify(value));
   } catch {
     return;
   }
 };
 
-const parseHash = (): { prdId: string; hasExtra: boolean } | null => {
+const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | null => {
   const raw = window.location.hash.replace(/^#\/?/, "");
   if (!raw) return null;
-  const [prdIdRaw, ...extraParts] = raw.split("/");
-  if (!prdIdRaw) return null;
-  let prdId = "";
+  const [selectionRaw, ...extraParts] = raw.split("/");
+  if (!selectionRaw) return null;
+  let decoded = "";
   try {
-    prdId = decodeURIComponent(prdIdRaw);
+    decoded = decodeURIComponent(selectionRaw);
   } catch {
     return null;
   }
+  const separator = decoded.indexOf(":");
+  if (separator <= 0 || separator >= decoded.length - 1) return null;
+  const rootId = decoded.slice(0, separator);
+  const prdId = decoded.slice(separator + 1);
+  if (!rootId || !prdId) return null;
   const hasExtra = extraParts.some((part) => part.length > 0);
-  return { prdId, hasExtra };
+  return { rootId, prdId, hasExtra };
 };
 
-const setHash = (prdId: string) => {
-  window.location.hash = `#/${encodeURIComponent(prdId)}`;
+const setHash = (rootId: string, prdId: string) => {
+  window.location.hash = `#/${encodeURIComponent(`${rootId}:${prdId}`)}`;
+};
+
+const findFirstSelection = (): Selection | null => {
+  for (const rootEntry of state.roots) {
+    const firstPrd = rootEntry.prds[0];
+    if (firstPrd) {
+      return { rootId: rootEntry.id, prdId: firstPrd.id };
+    }
+  }
+  return null;
 };
 
 const ensureSelection = () => {
   let updatedHash = false;
   const parsed = parseHash();
   if (parsed) {
-    const match = state.prds.find((prd) => prd.id === parsed.prdId);
-    if (match) {
-      state.selection = { prdId: match.id };
+    const rootEntry = state.roots.find((root) => root.id === parsed.rootId);
+    const prd = rootEntry?.prds.find((entry) => entry.id === parsed.prdId);
+    if (rootEntry && prd) {
+      state.selection = { rootId: rootEntry.id, prdId: prd.id };
       if (parsed.hasExtra) {
-        setHash(match.id);
+        setHash(rootEntry.id, prd.id);
         updatedHash = true;
       }
       return updatedHash;
     }
   }
 
-  const first = state.prds[0];
-  if (!first) {
+  const fallback = findFirstSelection();
+  if (!fallback) {
     state.selection = null;
     return updatedHash;
   }
-  const fallback: Selection = { prdId: first.id };
   state.selection = fallback;
-  setHash(fallback.prdId);
+  setHash(fallback.rootId, fallback.prdId);
   updatedHash = true;
   return updatedHash;
 };
@@ -133,8 +150,11 @@ const renderError = (message: string) => {
 const updateMobileSelect = () => {
   const select = layout.mobileSelect;
   select.innerHTML = "";
-  select.disabled = state.prds.length === 0;
-  if (state.prds.length === 0) {
+  const entries = state.roots.flatMap((rootEntry) =>
+    rootEntry.prds.map((prd) => ({ rootEntry, prd })),
+  );
+  select.disabled = entries.length === 0;
+  if (entries.length === 0) {
     const option = document.createElement("option");
     option.textContent = "No PRDs available";
     option.value = "";
@@ -142,24 +162,28 @@ const updateMobileSelect = () => {
     select.append(option);
     return;
   }
-  const rootLabel = state.rootMeta?.rootLabel ?? "";
-  const gitBranch = state.rootMeta?.gitBranch ?? null;
-  const rootPrefix = rootLabel
-    ? gitBranch
-      ? `${rootLabel} @${gitBranch}`
-      : rootLabel
-    : gitBranch
-      ? `@${gitBranch}`
-      : "";
-  for (const prd of state.prds) {
-    const progress = normalizeProgress(prd.progress);
+  for (const entry of entries) {
+    const progress = normalizeProgress(entry.prd.progress);
     const progressEmoji = progressToEmoji(progress);
     const option = document.createElement("option");
-    option.value = encodeURIComponent(prd.id);
+    option.value = encodeURIComponent(`${entry.rootEntry.id}:${entry.prd.id}`);
+    const labelText = entry.rootEntry.meta.rootLabel ?? "";
+    const branchText = entry.rootEntry.meta.gitBranch ?? "";
+    const rootPrefix = labelText
+      ? branchText
+        ? `${labelText} @${branchText}`
+        : labelText
+      : branchText
+        ? `@${branchText}`
+        : "";
     option.textContent = rootPrefix
-      ? `${rootPrefix} / ${prd.label} ${progressEmoji}`
-      : `${prd.label} ${progressEmoji}`;
-    if (state.selection && state.selection.prdId === prd.id) {
+      ? `${rootPrefix} / ${entry.prd.label} ${progressEmoji}`
+      : `${entry.prd.label} ${progressEmoji}`;
+    if (
+      state.selection &&
+      state.selection.rootId === entry.rootEntry.id &&
+      state.selection.prdId === entry.prd.id
+    ) {
       option.selected = true;
     }
     select.append(option);
@@ -168,33 +192,55 @@ const updateMobileSelect = () => {
 
 layout.mobileSelect.addEventListener("change", (event) => {
   const target = event.target as HTMLSelectElement;
-  const prdIdRaw = target.value;
-  if (!prdIdRaw) return;
-  let prdId = "";
+  const raw = target.value;
+  if (!raw) return;
+  let decoded = "";
   try {
-    prdId = decodeURIComponent(prdIdRaw);
+    decoded = decodeURIComponent(raw);
   } catch {
     return;
   }
-  if (prdId) {
-    setHash(prdId);
+  const separator = decoded.indexOf(":");
+  if (separator <= 0 || separator >= decoded.length - 1) return;
+  const rootId = decoded.slice(0, separator);
+  const prdId = decoded.slice(separator + 1);
+  if (rootId && prdId) {
+    setHash(rootId, prdId);
   }
 });
 
 const refreshSidebar = () => {
   renderSidebar(
     layout.sidebarContent,
-    state.rootMeta,
-    state.prds,
+    layout.sidebarFooter,
+    state.roots,
     state.selection,
-    state.sidebarCollapsed,
-    (prdId) => {
-      setHash(prdId);
+    state.collapsedRoots,
+    (rootId, prdId) => {
+      setHash(rootId, prdId);
     },
-    () => {
-      state.sidebarCollapsed = !state.sidebarCollapsed;
-      writeSidebarCollapsed(state.sidebarCollapsed);
+    (rootId) => {
+      state.collapsedRoots[rootId] = !state.collapsedRoots[rootId];
+      writeCollapsedRoots(state.collapsedRoots);
       refreshSidebar();
+    },
+    async (rootId) => {
+      try {
+        const payload = await removeRoot(rootId);
+        await syncRoots(payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to remove directory";
+        renderError(message);
+      }
+    },
+    async (path) => {
+      try {
+        const payload = await addRoot(path);
+        await syncRoots(payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to add directory";
+        renderError(message);
+      }
     },
   );
   updateMobileSelect();
@@ -203,18 +249,23 @@ const refreshSidebar = () => {
 const loadSelection = async () => {
   if (!state.selection) {
     setContentMode(false);
-    renderEmpty("No PRDs found in .tasks");
+    if (state.roots.length === 0) {
+      renderEmpty("No directories configured. Use Add to include a project root.");
+    } else {
+      renderEmpty("No PRDs found in configured roots.");
+    }
     return;
   }
 
-  const { prdId } = state.selection;
+  const { rootId, prdId } = state.selection;
   setContentMode(true);
   renderContent("Loading…");
 
   const requestId = ++selectionRequest;
   try {
-    const selectedPrd = state.prds.find((prd) => prd.id === prdId);
-    if (!selectedPrd) {
+    const selectedRoot = state.roots.find((rootEntry) => rootEntry.id === rootId);
+    const selectedPrd = selectedRoot?.prds.find((prd) => prd.id === prdId);
+    if (!selectedRoot || !selectedPrd) {
       throw new Error("PRD not found");
     }
 
@@ -235,13 +286,13 @@ const loadSelection = async () => {
       .filter((doc) => doc.id.toLowerCase() !== "plan")
       .sort((a, b) => collator.compare(a.id, b.id));
 
-    const payload = await fetchPlan(prdId);
+    const payload = await fetchPlan(rootId, prdId);
     if (requestId !== selectionRequest) return;
 
     const docPayloads = await Promise.all(
       normalizedDocs.map(async (doc) => {
         try {
-          const response = await fetchMarkdown(prdId, doc.id);
+          const response = await fetchMarkdown(rootId, prdId, doc.id);
           return { ...doc, markdown: response.markdown };
         } catch (error) {
           const detail = error instanceof Error ? error.message : "Failed to load content";
@@ -269,6 +320,7 @@ const loadSelection = async () => {
     planContainer.className = "plan-container";
     layout.contentBody.append(planContainer);
     state.lastPlan = {
+      rootId,
       prdId,
       planMarkdown: payload.planMarkdown,
       planJsonText: payload.planJsonText,
@@ -283,22 +335,23 @@ const loadSelection = async () => {
   }
 };
 
-const bootstrap = async () => {
-  state.sidebarCollapsed = readSidebarCollapsed();
-  try {
-    const payload = await fetchPrds();
-    state.prds = payload.prds;
-    state.rootMeta = payload.meta;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load PRDs";
-    renderError(message);
-    return;
-  }
-
+const syncRoots = async (payload: { roots: RootSummary[] }) => {
+  state.roots = payload.roots;
   const didUpdateHash = ensureSelection();
   refreshSidebar();
   if (!didUpdateHash) {
     await loadSelection();
+  }
+};
+
+const bootstrap = async () => {
+  state.collapsedRoots = readCollapsedRoots();
+  try {
+    const payload = await fetchRoots();
+    await syncRoots(payload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load directories";
+    renderError(message);
   }
 };
 

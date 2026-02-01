@@ -17,3 +17,8 @@
 - Root IDs are derived from a sha1 hash of the normalized project root path, with deterministic suffixing for collisions.
 - /api/roots endpoints load config on demand and map rootId back to the normalized root for read/remove operations.
 
+## F1: Client API + state for multi-root
+
+- Hashes now encode selection as `rootId:prdId`, with canonicalization to remove extra segments.
+- Mobile select options are built from root/prd pairs with root label/branch prefixes.
+

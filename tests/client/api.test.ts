@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { fetchMarkdown, fetchPlan, fetchPrds } from "../../src/client/api";
+import { addRoot, fetchMarkdown, fetchPlan, fetchRoots, removeRoot } from "../../src/client/api";
 
 const originalFetch = globalThis.fetch;
 
@@ -8,12 +8,22 @@ afterEach(() => {
 });
 
 describe("api helpers", () => {
-  test("fetches PRDs, plan, and markdown", async () => {
+  test("fetches roots, plan, and markdown", async () => {
     globalThis.fetch = async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
-      if (url.endsWith("/api/prds")) {
+      if (url.endsWith("/api/roots") && !url.includes("/api/roots/")) {
         return new Response(
-          JSON.stringify({ meta: { rootLabel: "", gitBranch: null, rootPath: "/" }, prds: [] }),
+          JSON.stringify({
+            roots: [
+              {
+                id: "root",
+                path: "/",
+                tasksDir: ".tasks",
+                meta: { rootLabel: "", gitBranch: null, rootPath: "/" },
+                prds: [],
+              },
+            ],
+          }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
@@ -29,14 +39,31 @@ describe("api helpers", () => {
       });
     };
 
-    const prds = await fetchPrds();
-    expect(Array.isArray(prds.prds)).toBe(true);
+    const roots = await fetchRoots();
+    expect(Array.isArray(roots.roots)).toBe(true);
 
-    const plan = await fetchPlan("alpha");
+    const plan = await fetchPlan("root", "alpha");
     expect(plan.planMarkdown).toContain("Plan");
 
-    const doc = await fetchMarkdown("alpha", "notes");
+    const doc = await fetchMarkdown("root", "alpha", "notes");
     expect(doc.markdown).toContain("Notes");
+  });
+
+  test("adds and removes roots", async () => {
+    const calls: string[] = [];
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      return new Response(JSON.stringify({ roots: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    await addRoot("/tmp/project");
+    await removeRoot("root");
+    expect(calls).toContain("POST /api/roots");
+    expect(calls).toContain("DELETE /api/roots/root");
   });
 
   test("throws message from error payload", async () => {
@@ -47,7 +74,7 @@ describe("api helpers", () => {
       });
 
     try {
-      await fetchPrds();
+      await fetchRoots();
       throw new Error("expected to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -59,7 +86,7 @@ describe("api helpers", () => {
     globalThis.fetch = async () => new Response("nope", { status: 500 });
 
     try {
-      await fetchPrds();
+      await fetchRoots();
       throw new Error("expected to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -73,7 +100,7 @@ describe("api helpers", () => {
     };
 
     try {
-      await fetchPrds();
+      await fetchRoots();
       throw new Error("expected to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
