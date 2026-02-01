@@ -55,25 +55,46 @@ const writeCollapsedRoots = (value: Record<string, boolean>) => {
 const parseHash = (): { rootId: string; prdId: string; hasExtra: boolean } | null => {
   const raw = window.location.hash.replace(/^#\/?/, "");
   if (!raw) return null;
-  const [selectionRaw, ...extraParts] = raw.split("/");
-  if (!selectionRaw) return null;
-  let decoded = "";
+  const [rootRaw, prdRaw, ...extraParts] = raw.split("/");
+  if (rootRaw && rootRaw.includes(":")) {
+    try {
+      const decoded = decodeURIComponent(rootRaw);
+      const separator = decoded.indexOf(":");
+      if (separator <= 0 || separator >= decoded.length - 1) return null;
+      const rootId = decoded.slice(0, separator);
+      const prdId = decoded.slice(separator + 1);
+      const hasExtra = prdRaw ? true : extraParts.some((part) => part.length > 0);
+      return rootId && prdId ? { rootId, prdId, hasExtra } : null;
+    } catch {
+      return null;
+    }
+  }
+  if (rootRaw && prdRaw) {
+    try {
+      const rootId = decodeURIComponent(rootRaw);
+      const prdId = decodeURIComponent(prdRaw);
+      const hasExtra = extraParts.some((part) => part.length > 0);
+      return rootId && prdId ? { rootId, prdId, hasExtra } : null;
+    } catch {
+      return null;
+    }
+  }
+  if (!rootRaw) return null;
   try {
-    decoded = decodeURIComponent(selectionRaw);
+    const decoded = decodeURIComponent(rootRaw);
+    const separator = decoded.indexOf(":");
+    if (separator <= 0 || separator >= decoded.length - 1) return null;
+    const rootId = decoded.slice(0, separator);
+    const prdId = decoded.slice(separator + 1);
+    const hasExtra = extraParts.some((part) => part.length > 0);
+    return rootId && prdId ? { rootId, prdId, hasExtra } : null;
   } catch {
     return null;
   }
-  const separator = decoded.indexOf(":");
-  if (separator <= 0 || separator >= decoded.length - 1) return null;
-  const rootId = decoded.slice(0, separator);
-  const prdId = decoded.slice(separator + 1);
-  if (!rootId || !prdId) return null;
-  const hasExtra = extraParts.some((part) => part.length > 0);
-  return { rootId, prdId, hasExtra };
 };
 
 const setHash = (rootId: string, prdId: string) => {
-  window.location.hash = `#/${encodeURIComponent(`${rootId}:${prdId}`)}`;
+  window.location.hash = `#/${encodeURIComponent(rootId)}/${encodeURIComponent(prdId)}`;
 };
 
 const findFirstSelection = (): Selection | null => {
@@ -166,7 +187,7 @@ const updateMobileSelect = () => {
     const progress = normalizeProgress(entry.prd.progress);
     const progressEmoji = progressToEmoji(progress);
     const option = document.createElement("option");
-    option.value = encodeURIComponent(`${entry.rootEntry.id}:${entry.prd.id}`);
+    option.value = `${encodeURIComponent(entry.rootEntry.id)}/${encodeURIComponent(entry.prd.id)}`;
     const labelText = entry.rootEntry.meta.rootLabel ?? "";
     const branchText = entry.rootEntry.meta.gitBranch ?? "";
     const rootPrefix = labelText
@@ -194,18 +215,30 @@ layout.mobileSelect.addEventListener("change", (event) => {
   const target = event.target as HTMLSelectElement;
   const raw = target.value;
   if (!raw) return;
-  let decoded = "";
-  try {
-    decoded = decodeURIComponent(raw);
-  } catch {
+  const [rootRaw, prdRaw] = raw.split("/");
+  if (rootRaw && prdRaw) {
+    try {
+      const rootId = decodeURIComponent(rootRaw);
+      const prdId = decodeURIComponent(prdRaw);
+      if (rootId && prdId) {
+        setHash(rootId, prdId);
+      }
+    } catch {
+      return;
+    }
     return;
   }
-  const separator = decoded.indexOf(":");
-  if (separator <= 0 || separator >= decoded.length - 1) return;
-  const rootId = decoded.slice(0, separator);
-  const prdId = decoded.slice(separator + 1);
-  if (rootId && prdId) {
-    setHash(rootId, prdId);
+  try {
+    const decoded = decodeURIComponent(raw);
+    const separator = decoded.indexOf(":");
+    if (separator <= 0 || separator >= decoded.length - 1) return;
+    const rootId = decoded.slice(0, separator);
+    const prdId = decoded.slice(separator + 1);
+    if (rootId && prdId) {
+      setHash(rootId, prdId);
+    }
+  } catch {
+    return;
   }
 });
 
