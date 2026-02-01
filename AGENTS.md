@@ -78,6 +78,15 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 
 - Wrap localStorage access in try/catch and keep UI state toggles functional when storage is unavailable.
 
+## Config editor
+
+- Keep config text validation aligned with load/normalize behavior so saved schemas remain readable.
+- Reject non-string per-root `tasksDir` overrides during normalization.
+- Use temp file + rename with cleanup when writing config text to avoid partial writes.
+- Guard async save flows with a request token or active-handle checks to avoid updating a closed editor.
+- Disable the Settings button while the editor is open and clear toast timers on close.
+- Match wrap/line-ending behavior and scrollbar gutters between textarea and highlight layers to keep sync accurate.
+
 ## Tests and coverage
 
 - Bun `coverageThreshold` expects singular keys (`line`, `function`, `statement`).
