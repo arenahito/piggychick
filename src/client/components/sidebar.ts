@@ -8,8 +8,6 @@ export type Selection = {
 
 type SelectHandler = (rootId: string, prdId: string) => void;
 type ToggleHandler = (rootId: string) => void;
-type RemoveHandler = (rootId: string) => void;
-type AddHandler = (path: string) => void;
 
 export const renderSidebar = (
   content: HTMLElement,
@@ -19,8 +17,6 @@ export const renderSidebar = (
   collapsed: Record<string, boolean>,
   onSelect: SelectHandler,
   onToggleCollapse: ToggleHandler,
-  onRemoveRoot: RemoveHandler,
-  onAddRoot: AddHandler,
 ) => {
   content.innerHTML = "";
   footer.innerHTML = "";
@@ -143,18 +139,6 @@ export const renderSidebar = (
       actions.append(copyButton);
     }
 
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.className = "sidebar-root-remove";
-    removeButton.textContent = "❌";
-    removeButton.setAttribute("title", "Remove directory");
-    removeButton.setAttribute("aria-label", "Remove directory");
-    removeButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (!window.confirm("Remove this directory?")) return;
-      onRemoveRoot(root.id);
-    });
-    actions.append(removeButton);
     rootHeader.append(actions);
 
     rootSection.append(rootHeader);
@@ -189,26 +173,7 @@ export const renderSidebar = (
     content.append(rootSection);
   }
 
-  const toolbar = document.createElement("form");
+  const toolbar = document.createElement("div");
   toolbar.className = "sidebar-toolbar";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.name = "rootPath";
-  input.placeholder = "Add directory path";
-  input.autocomplete = "off";
-  input.setAttribute("aria-label", "Directory path");
-  input.className = "sidebar-toolbar-input";
-  const submit = document.createElement("button");
-  submit.type = "submit";
-  submit.className = "sidebar-toolbar-button";
-  submit.textContent = "Add";
-  toolbar.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const value = input.value.trim();
-    if (!value) return;
-    onAddRoot(value);
-    input.value = "";
-  });
-  toolbar.append(input, submit);
   footer.append(toolbar);
 };

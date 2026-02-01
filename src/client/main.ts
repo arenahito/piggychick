@@ -1,4 +1,4 @@
-import { addRoot, fetchMarkdown, fetchPlan, fetchRoots, removeRoot, type RootSummary } from "./api";
+import { fetchMarkdown, fetchPlan, fetchRoots, type RootSummary } from "./api";
 import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
@@ -257,24 +257,6 @@ const refreshSidebar = () => {
       writeCollapsedRoots(state.collapsedRoots);
       refreshSidebar();
     },
-    async (rootId) => {
-      try {
-        const payload = await removeRoot(rootId);
-        await syncRoots(payload);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to remove directory";
-        renderError(message);
-      }
-    },
-    async (path) => {
-      try {
-        const payload = await addRoot(path);
-        await syncRoots(payload);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to add directory";
-        renderError(message);
-      }
-    },
   );
   updateMobileSelect();
 };
@@ -283,7 +265,7 @@ const loadSelection = async () => {
   if (!state.selection) {
     setContentMode(false);
     if (state.roots.length === 0) {
-      renderEmpty("No directories configured. Use Add to include a project root.");
+      renderEmpty("No directories configured. Use the CLI to add a project root.");
     } else {
       renderEmpty("No PRDs found in configured roots.");
     }
