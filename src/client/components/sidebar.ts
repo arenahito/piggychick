@@ -196,6 +196,7 @@ export const renderSidebar = (
   input.name = "rootPath";
   input.placeholder = "Add directory path";
   input.autocomplete = "off";
+  input.setAttribute("aria-label", "Directory path");
   input.className = "sidebar-toolbar-input";
   const submit = document.createElement("button");
   submit.type = "submit";
