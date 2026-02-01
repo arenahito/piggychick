@@ -52,7 +52,7 @@ const fetchJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
   return data as T;
 };
 
-export const fetchRoots = () => fetchJson<RootsPayload>("/api/roots");
+export const fetchRoots = () => fetchJson<RootsPayload>("/api/roots?prdSort=desc");
 
 export const addRoot = (path: string) =>
   fetchJson<RootsPayload>("/api/roots", {

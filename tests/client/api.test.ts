@@ -19,7 +19,7 @@ describe("api helpers", () => {
   test("fetches roots, plan, markdown, and config", async () => {
     globalThis.fetch = async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
-      if (url.endsWith("/api/roots") && !url.includes("/api/roots/")) {
+      if (url.includes("/api/roots?prdSort=desc") && !url.includes("/api/roots/")) {
         return new Response(
           JSON.stringify({
             roots: [
