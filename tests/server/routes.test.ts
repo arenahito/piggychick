@@ -98,6 +98,25 @@ describe("handleApiRequest", () => {
     });
   });
 
+  test("decodes encoded PRD and doc ids", async () => {
+    await withTempRoot(async (root, configPath) => {
+      await createPrd(join(root, ".tasks"), "alpha space", {
+        docs: [{ name: "notes space.md", content: "# Notes Space" }],
+      });
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id;
+      const prdId = encodeURIComponent("alpha space");
+      const docId = encodeURIComponent("notes space");
+      const request = new Request(`http://localhost/api/roots/${rootId}/prds/${prdId}/${docId}`);
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.markdown).toContain("# Notes Space");
+    });
+  });
+
   test("returns not found for unknown route", async () => {
     await withTempRoot(async (_root, configPath) => {
       const request = new Request("http://localhost/api/unknown");

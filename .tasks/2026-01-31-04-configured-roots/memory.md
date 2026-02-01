@@ -32,3 +32,4 @@
 - Documented config file location, CLI commands, and per-root tasksDir overrides in README.
 
 - Hash format uses `#/rootId/prdId` to avoid delimiter conflicts with PRD names.
+- Decode URL path segments in routes so encoded PRD/doc IDs resolve correctly.

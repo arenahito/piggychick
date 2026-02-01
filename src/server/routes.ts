@@ -46,6 +46,14 @@ const normalizeRootPath = async (value: string) => {
   return real ?? resolved;
 };
 
+const decodeSegment = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+};
+
 export const handleApiRequest = async (request: Request, configPath = resolveConfigPath()) => {
   const url = new URL(request.url);
   const segments = url.pathname.split("/").filter(Boolean);
@@ -101,7 +109,10 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
 
   if (segments[1] === "roots" && segments.length === 3) {
     if (request.method === "DELETE") {
-      const rootId = segments[2];
+      const rootId = decodeSegment(segments[2]);
+      if (!rootId) {
+        return jsonError(400, "invalid_request", "Invalid root id");
+      }
       try {
         const root = await resolveRootById(rootId, configPath);
         if (!root) {
@@ -129,9 +140,12 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
     if (request.method !== "GET") {
       return jsonError(405, "method_not_allowed", "Method not allowed");
     }
-    const rootId = segments[2];
-    const prd = segments[4];
-    const doc = segments[5];
+    const rootId = decodeSegment(segments[2]);
+    const prd = decodeSegment(segments[4]);
+    const doc = decodeSegment(segments[5]);
+    if (!rootId || !prd || !doc) {
+      return jsonError(400, "invalid_request", "Invalid request");
+    }
     try {
       if (doc === "plan") {
         const payload = await readPlanByRoot(rootId, prd, configPath);
