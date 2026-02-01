@@ -10,3 +10,8 @@
 
 - Reserve the "wt:" prefix and disallow ":" in PRD names to keep encoded IDs unambiguous across platforms.
 - Decode worktree PRD IDs before filesystem access and resolve the tasks root via git worktree metadata.
+
+## F1: Show worktree label under PRD name in sidebar
+
+- Use a dedicated text wrapper with `flex: 1` and `min-width: 0` to keep status icons aligned while supporting multi-line labels.
+- Render the worktree label as a separate muted line with ellipsis to avoid truncating the PRD title.

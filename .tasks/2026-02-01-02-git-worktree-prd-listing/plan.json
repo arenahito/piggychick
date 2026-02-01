@@ -15,7 +15,7 @@
     {
       "id": "74aa0776-d324-44c9-8c1a-c9928f5fed2b",
       "title": "F1: Show worktree label under PRD name in sidebar",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["bc1aea94-c4f1-4ba0-a732-10476b745e2c"]
     },
     {

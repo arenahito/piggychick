@@ -5,6 +5,7 @@ export type PrdSummary = {
   label: string;
   docs: string[];
   progress: PrdProgress;
+  worktree?: { id: string; label: string };
 };
 
 export type PrdListMeta = {

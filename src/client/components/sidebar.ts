@@ -188,9 +188,18 @@ export const renderSidebar = (
         }
         button.addEventListener("click", () => onSelect(root.id, prd.id));
 
+        const textWrap = document.createElement("span");
+        textWrap.className = "sidebar-prd-text";
         const title = document.createElement("span");
-        title.className = "sidebar-prd-label";
+        title.className = "sidebar-prd-title";
         title.textContent = prd.label;
+        textWrap.append(title);
+        if (prd.worktree?.label) {
+          const worktree = document.createElement("span");
+          worktree.className = "sidebar-prd-worktree";
+          worktree.textContent = prd.worktree.label;
+          textWrap.append(worktree);
+        }
 
         const status = document.createElement("span");
         status.className = "sidebar-prd-status";
@@ -199,7 +208,7 @@ export const renderSidebar = (
         status.setAttribute("role", "img");
         status.setAttribute("aria-label", progressToLabel(progress));
 
-        button.append(title, status);
+        button.append(textWrap, status);
         prdList.append(button);
       }
       if (hasOverflow) {
