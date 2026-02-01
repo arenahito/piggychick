@@ -15,7 +15,7 @@
     {
       "id": "2264ec53-3aee-48c6-ad84-84bdd592cff1",
       "title": "F2: Style PRD path header and copy button",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["1907beae-8328-4f67-8bc0-7204d3f32912"]
     }
   ]

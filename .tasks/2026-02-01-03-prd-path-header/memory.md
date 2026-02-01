@@ -9,3 +9,8 @@
 
 - The plan view can insert a header above the doc nav by creating the nav and then placing it after the header when present.
 - Copy feedback can rely on `data-state` styling and a `role="status"` live region while keeping the button label stable for clarity.
+
+## F2: Style PRD path header and copy button
+
+- The path header looks most stable when it shares the markdown max width and uses muted-strong monospace text for readability.
+- Copy button feedback should not be overridden by hover styles; keep hover styling limited to non-success/error states.

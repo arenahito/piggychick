@@ -905,6 +905,65 @@ select {
   position: relative;
 }
 
+.plan-prd-path {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--space) * 1.5);
+  max-width: 750px;
+  width: 100%;
+  margin: 0 auto calc(var(--space) * 3);
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+}
+
+.plan-prd-path-text {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--muted-strong);
+  overflow-wrap: anywhere;
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-prd-copy {
+  font-size: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted-strong);
+  border-radius: 999px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.plan-prd-copy[data-state="copied"] {
+  color: var(--md-code);
+  border-color: rgba(166, 226, 46, 0.6);
+}
+
+.plan-prd-copy[data-state="error"] {
+  color: var(--md-h1);
+  border-color: rgba(209, 109, 138, 0.6);
+}
+
+.plan-prd-copy:focus-visible {
+  outline: 2px solid rgba(124, 196, 255, 0.6);
+  outline-offset: 2px;
+}
+
+.plan-prd-copy:not([data-state="copied"]):not([data-state="error"]):hover {
+  color: var(--md-h2);
+  border-color: var(--md-h2);
+}
+
 .plan-doc-nav {
   display: flex;
   flex-wrap: wrap;
@@ -1031,5 +1090,10 @@ select {
 
   .plan-view {
     grid-template-columns: 1fr;
+  }
+
+  .plan-prd-copy {
+    width: 48px;
+    height: 48px;
   }
 }
