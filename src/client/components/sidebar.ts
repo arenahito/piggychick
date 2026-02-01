@@ -62,7 +62,7 @@ export const renderSidebar = (
     return prds.filter((prd) => normalizeProgress(prd.progress) !== "done");
   };
 
-  for (const root of roots) {
+  for (const [index, root] of roots.entries()) {
     const rootSection = document.createElement("div");
     rootSection.className = "sidebar-root-section";
     const headerText = root.meta.rootLabel
@@ -111,8 +111,20 @@ export const renderSidebar = (
     toggleButton.addEventListener("click", () => onToggleCollapse(root.id));
     rootHeader.append(toggleButton);
 
+    const prdList = document.createElement("div");
+    prdList.className = "sidebar-prd-list";
+    const safeRootId = root.id.replace(/[^a-zA-Z0-9_-]/g, "");
+    prdList.id = `sidebar-prd-list-${safeRootId || "root"}-${index}`;
+    prdList.hidden = shouldCollapse;
+    toggleButton.setAttribute("aria-controls", prdList.id);
+
     const actions = document.createElement("div");
     actions.className = "sidebar-root-actions";
+    const copyStatus = document.createElement("span");
+    copyStatus.className = "sr-only";
+    copyStatus.setAttribute("role", "status");
+    copyStatus.setAttribute("aria-live", "polite");
+    copyStatus.setAttribute("aria-atomic", "true");
 
     if (root.meta.rootPath) {
       const copyButton = document.createElement("button");
@@ -121,8 +133,6 @@ export const renderSidebar = (
       copyButton.textContent = "📋";
       copyButton.setAttribute("title", "Copy path");
       copyButton.setAttribute("aria-label", "Copy path");
-      copyButton.setAttribute("aria-live", "polite");
-      copyButton.setAttribute("aria-atomic", "true");
       copyButton.dataset.state = "idle";
       let resetHandle: number | null = null;
       const setCopyState = (state: "idle" | "copied" | "error") => {
@@ -134,12 +144,15 @@ export const renderSidebar = (
         if (state === "copied") {
           copyButton.setAttribute("title", "Copied");
           copyButton.setAttribute("aria-label", "Copied");
+          copyStatus.textContent = "Copied";
         } else if (state === "error") {
           copyButton.setAttribute("title", "Copy failed");
           copyButton.setAttribute("aria-label", "Copy failed");
+          copyStatus.textContent = "Copy failed";
         } else {
           copyButton.setAttribute("title", "Copy path");
           copyButton.setAttribute("aria-label", "Copy path");
+          copyStatus.textContent = "";
         }
         if (state !== "idle") {
           resetHandle = window.setTimeout(() => setCopyState("idle"), 1500);
@@ -155,8 +168,10 @@ export const renderSidebar = (
     }
 
     rootHeader.append(actions);
+    rootHeader.append(copyStatus);
 
     rootSection.append(rootHeader);
+    rootSection.append(prdList);
 
     if (!shouldCollapse) {
       const filteredPrds = filterPrds(root.prds);
@@ -185,7 +200,7 @@ export const renderSidebar = (
         status.setAttribute("aria-label", progressToLabel(progress));
 
         button.append(title, status);
-        rootSection.append(button);
+        prdList.append(button);
       }
       if (hasOverflow) {
         const toggleMore = document.createElement("button");
@@ -195,8 +210,9 @@ export const renderSidebar = (
         toggleMore.textContent = isExpanded ? "Show less" : `Show ${remaining} more`;
         toggleMore.setAttribute("aria-expanded", String(isExpanded));
         toggleMore.setAttribute("aria-label", isExpanded ? "Show fewer PRDs" : "Show more PRDs");
+        toggleMore.setAttribute("aria-controls", prdList.id);
         toggleMore.addEventListener("click", () => onToggleExpand(root.id));
-        rootSection.append(toggleMore);
+        prdList.append(toggleMore);
       }
     }
 
