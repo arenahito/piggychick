@@ -676,7 +676,7 @@ export const readPlan = async (root: string, prd: string) => {
   const prdDir = await resolvePrdDir(root, prd);
   const planMarkdown = await readTextFileWithin(prdDir, "plan.md");
   const planJsonText = await readTextFileWithin(prdDir, "plan.json");
-  return { planMarkdown, planJsonText };
+  return { planMarkdown, planJsonText, prdPath: prdDir };
 };
 
 export const readMarkdown = async (root: string, prd: string, docId: string) => {
