@@ -48,7 +48,7 @@ const shouldCache = (pathname: string) => {
 };
 
 export const startServer = async (options: ServerOptions) => {
-  const port = Number(options.port ?? process.env.PGCH_PORT ?? 3000);
+  const port = Number(options.port ?? process.env.PGCH_PORT ?? 42525);
   const configPath = options.configPath;
   const distRoot = resolve(options.distRoot);
   const distRootReal = await realpath(distRoot).catch(() => distRoot);
