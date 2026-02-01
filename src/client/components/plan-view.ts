@@ -1,3 +1,4 @@
+import { createIcon } from "../icons";
 import { renderMarkdown, renderMermaid } from "../renderers/markdown";
 import { buildPlanGraph } from "../renderers/plan-graph";
 
@@ -68,7 +69,7 @@ export const renderPlanView = async (
     const copyButton = document.createElement("button");
     copyButton.type = "button";
     copyButton.className = "plan-prd-copy";
-    copyButton.textContent = "📋";
+    copyButton.append(createIcon("clipboard", "icon icon--sm"));
     copyButton.setAttribute("title", "Copy path");
     copyButton.setAttribute("aria-label", "Copy path");
     copyButton.dataset.state = "idle";
@@ -118,7 +119,7 @@ export const renderPlanView = async (
       const topButton = document.createElement("button");
       topButton.type = "button";
       topButton.className = "plan-section-top";
-      topButton.textContent = "⬆";
+      topButton.append(createIcon("chevron-double-up", "icon icon--sm"));
       topButton.setAttribute("aria-label", "Scroll to top");
       topButton.addEventListener("click", () => {
         markdownPane.scrollTo({ top: 0, behavior: "smooth" });

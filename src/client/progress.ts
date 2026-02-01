@@ -1,8 +1,5 @@
 import type { PrdProgress } from "./api";
-
-const notStartedEmoji = String.fromCodePoint(0x2b1c);
-const inProgressEmoji = String.fromCodePoint(0x1f504);
-const doneEmoji = String.fromCodePoint(0x2705);
+import { createIcon } from "./icons";
 
 export const normalizeProgress = (progress?: PrdProgress | null): PrdProgress => {
   if (progress === "in_progress" || progress === "done") {
@@ -11,10 +8,10 @@ export const normalizeProgress = (progress?: PrdProgress | null): PrdProgress =>
   return "not_started";
 };
 
-export const progressToEmoji = (progress: PrdProgress): string => {
-  if (progress === "done") return doneEmoji;
-  if (progress === "in_progress") return inProgressEmoji;
-  return notStartedEmoji;
+export const progressToIcon = (progress: PrdProgress): SVGSVGElement => {
+  if (progress === "done") return createIcon("check-circle", "icon icon--lg");
+  if (progress === "in_progress") return createIcon("bolt", "icon icon--lg");
+  return createIcon("stop", "icon icon--lg");
 };
 
 export const progressToLabel = (progress: PrdProgress): string => {

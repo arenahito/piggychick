@@ -16,7 +16,7 @@ import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
-import { normalizeProgress, progressToEmoji } from "./progress";
+import { normalizeProgress, progressToLabel } from "./progress";
 import "./styles.css";
 
 const root = document.getElementById("app");
@@ -315,12 +315,12 @@ const updateMobileSelect = () => {
     option.disabled = true;
     select.append(option);
   }
-  for (const entry of entries) {
-    const progress = normalizeProgress(entry.prd.progress);
-    const progressEmoji = progressToEmoji(progress);
-    const option = document.createElement("option");
-    option.value = `${encodeURIComponent(entry.rootEntry.id)}/${encodeURIComponent(entry.prd.id)}`;
-    const labelText = entry.rootEntry.meta.rootLabel ?? "";
+    for (const entry of entries) {
+      const progress = normalizeProgress(entry.prd.progress);
+      const progressLabel = progressToLabel(progress);
+      const option = document.createElement("option");
+      option.value = `${encodeURIComponent(entry.rootEntry.id)}/${encodeURIComponent(entry.prd.id)}`;
+      const labelText = entry.rootEntry.meta.rootLabel ?? "";
     const branchText = entry.rootEntry.meta.gitBranch ?? "";
     const rootPrefix = labelText
       ? branchText
@@ -331,9 +331,9 @@ const updateMobileSelect = () => {
         : "";
     const worktreeLabel = entry.prd.worktree?.label;
     const prdLabel = worktreeLabel ? `${entry.prd.label} (${worktreeLabel})` : entry.prd.label;
-    option.textContent = rootPrefix
-      ? `${rootPrefix} / ${prdLabel} ${progressEmoji}`
-      : `${prdLabel} ${progressEmoji}`;
+      option.textContent = rootPrefix
+        ? `${rootPrefix} / ${prdLabel} (${progressLabel})`
+        : `${prdLabel} (${progressLabel})`;
     if (
       selectionVisible &&
       state.selection &&

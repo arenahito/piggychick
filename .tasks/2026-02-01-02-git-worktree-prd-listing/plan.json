@@ -10,19 +10,25 @@
       "id": "395ad411-5eb1-4f3e-bcc4-2ce04cc8e5af",
       "title": "B2: Resolve worktree PRD IDs when reading plans/docs",
       "passes": true,
-      "dependsOn": ["bc1aea94-c4f1-4ba0-a732-10476b745e2c"]
+      "dependsOn": [
+        "bc1aea94-c4f1-4ba0-a732-10476b745e2c"
+      ]
     },
     {
       "id": "74aa0776-d324-44c9-8c1a-c9928f5fed2b",
       "title": "F1: Show worktree label under PRD name in sidebar",
       "passes": true,
-      "dependsOn": ["bc1aea94-c4f1-4ba0-a732-10476b745e2c"]
+      "dependsOn": [
+        "bc1aea94-c4f1-4ba0-a732-10476b745e2c"
+      ]
     },
     {
       "id": "af7ff448-9425-4f89-a612-28bd3c2c0009",
       "title": "F2: Clarify worktree PRDs in mobile selector",
-      "passes": true,
-      "dependsOn": ["74aa0776-d324-44c9-8c1a-c9928f5fed2b"]
+      "passes": false,
+      "dependsOn": [
+        "74aa0776-d324-44c9-8c1a-c9928f5fed2b"
+      ]
     }
   ]
 }

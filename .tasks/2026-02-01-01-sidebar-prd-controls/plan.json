@@ -4,29 +4,35 @@
       "id": "886bf467-c59f-4541-8eba-21bfb442cd11",
       "title": "B1: Add PRD sort parameter to API and server helpers",
       "category": "backend",
-      "passes": true,
+      "passes": false,
       "dependsOn": []
     },
     {
       "id": "0eddad3e-c1d3-41e7-9d89-630cb342649f",
       "title": "F1: Request descending PRD order from the client API",
       "category": "frontend",
-      "passes": true,
-      "dependsOn": ["886bf467-c59f-4541-8eba-21bfb442cd11"]
+      "passes": false,
+      "dependsOn": [
+        "886bf467-c59f-4541-8eba-21bfb442cd11"
+      ]
     },
     {
       "id": "cb07712b-943a-4d76-84a7-2a59485a1d9d",
       "title": "F2: Add sidebar filtering, limits, and toolbar controls",
       "category": "frontend",
-      "passes": true,
-      "dependsOn": ["0eddad3e-c1d3-41e7-9d89-630cb342649f"]
+      "passes": false,
+      "dependsOn": [
+        "0eddad3e-c1d3-41e7-9d89-630cb342649f"
+      ]
     },
     {
       "id": "5318e89d-5dff-4502-b321-b051c38dcc3c",
       "title": "F3: Style new sidebar controls",
       "category": "frontend",
-      "passes": true,
-      "dependsOn": ["cb07712b-943a-4d76-84a7-2a59485a1d9d"]
+      "passes": false,
+      "dependsOn": [
+        "cb07712b-943a-4d76-84a7-2a59485a1d9d"
+      ]
     }
   ]
 }

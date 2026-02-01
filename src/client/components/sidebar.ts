@@ -1,5 +1,6 @@
 import type { RootSummary } from "../api";
-import { normalizeProgress, progressToEmoji, progressToLabel } from "../progress";
+import { createIcon } from "../icons";
+import { normalizeProgress, progressToIcon, progressToLabel } from "../progress";
 
 export type Selection = {
   rootId: string;
@@ -130,7 +131,7 @@ export const renderSidebar = (
       const copyButton = document.createElement("button");
       copyButton.type = "button";
       copyButton.className = "sidebar-root-copy";
-      copyButton.textContent = "📋";
+      copyButton.append(createIcon("clipboard", "icon icon--sm"));
       copyButton.setAttribute("title", "Copy path");
       copyButton.setAttribute("aria-label", "Copy path");
       copyButton.dataset.state = "idle";
@@ -204,9 +205,16 @@ export const renderSidebar = (
         const status = document.createElement("span");
         status.className = "sidebar-prd-status";
         const progress = normalizeProgress(prd.progress);
-        status.textContent = progressToEmoji(progress);
+        status.append(progressToIcon(progress));
         status.setAttribute("role", "img");
         status.setAttribute("aria-label", progressToLabel(progress));
+        if (progress === "done") {
+          status.classList.add("is-done");
+        } else if (progress === "in_progress") {
+          status.classList.add("is-in-progress");
+        } else {
+          status.classList.add("is-not-started");
+        }
 
         button.append(textWrap, status);
         prdList.append(button);
@@ -233,7 +241,7 @@ export const renderSidebar = (
   const openAllButton = document.createElement("button");
   openAllButton.type = "button";
   openAllButton.className = "sidebar-tool-button sidebar-tool-button--icon";
-  openAllButton.textContent = "📂";
+  openAllButton.append(createIcon("folder-plus", "icon icon--md"));
   openAllButton.setAttribute("aria-label", "Open all folders");
   openAllButton.setAttribute("title", "Open all folders");
   openAllButton.addEventListener("click", () => onOpenAll());
@@ -242,7 +250,7 @@ export const renderSidebar = (
   const closeAllButton = document.createElement("button");
   closeAllButton.type = "button";
   closeAllButton.className = "sidebar-tool-button sidebar-tool-button--icon";
-  closeAllButton.textContent = "📁";
+  closeAllButton.append(createIcon("folder-minus", "icon icon--md"));
   closeAllButton.setAttribute("aria-label", "Close all folders");
   closeAllButton.setAttribute("title", "Close all folders");
   closeAllButton.addEventListener("click", () => onCloseAll());
@@ -261,8 +269,8 @@ export const renderSidebar = (
   });
   const filterEmoji = document.createElement("span");
   filterEmoji.className = "sidebar-tool-emoji";
-  filterEmoji.textContent = "⏳";
   filterEmoji.setAttribute("aria-hidden", "true");
+  filterEmoji.append(createIcon("funnel", "icon icon--sm"));
   const filterSwitch = document.createElement("span");
   filterSwitch.className = "sidebar-tool-switch";
   filterSwitch.setAttribute("aria-hidden", "true");
@@ -270,9 +278,10 @@ export const renderSidebar = (
   toolbar.append(filterLabel);
   const settingsButton = document.createElement("button");
   settingsButton.type = "button";
-  settingsButton.className = "sidebar-tool-button";
-  settingsButton.textContent = "Settings";
+  settingsButton.className = "sidebar-tool-button sidebar-tool-button--icon";
+  settingsButton.append(createIcon("cog-6-tooth", "icon icon--md"));
   settingsButton.setAttribute("aria-label", "Open settings");
+  settingsButton.setAttribute("title", "Open settings");
   settingsButton.disabled = isConfigOpen;
   settingsButton.addEventListener("click", () => onOpenConfig());
   toolbar.append(settingsButton);
