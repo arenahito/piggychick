@@ -22,3 +22,8 @@
 - Hashes now encode selection as `rootId:prdId`, with canonicalization to remove extra segments.
 - Mobile select options are built from root/prd pairs with root label/branch prefixes.
 
+## F2: Sidebar rendering, toolbar, and emoji actions
+
+- Sidebar now renders a per-root header with emoji copy/remove actions and a sticky footer toolbar for adding roots.
+- Copy feedback uses button state styling while keeping the emoji label short.
+

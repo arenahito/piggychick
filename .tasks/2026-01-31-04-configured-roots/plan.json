@@ -27,7 +27,7 @@
     {
       "id": "12a5b877-08d0-451b-ba6c-8d8a420d87be",
       "title": "F2: Sidebar rendering, toolbar, and emoji actions",
-      "passes": false,
+      "passes": true,
       "dependsOn": ["de35f41f-d8d0-4073-be71-f8bec827c100"]
     },
     {

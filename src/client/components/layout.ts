@@ -1,6 +1,7 @@
 export type Layout = {
   root: HTMLDivElement;
   sidebarContent: HTMLElement;
+  sidebarFooter: HTMLElement;
   content: HTMLElement;
   contentBody: HTMLElement;
   mobileSelect: HTMLSelectElement;
@@ -25,7 +26,10 @@ export const createLayout = (): Layout => {
   const sidebarContent = document.createElement("div");
   sidebarContent.className = "sidebar-content";
 
-  sidebar.append(sidebarContent);
+  const sidebarFooter = document.createElement("div");
+  sidebarFooter.className = "sidebar-footer";
+
+  sidebar.append(sidebarContent, sidebarFooter);
 
   const content = document.createElement("main");
   content.className = "app-content";
@@ -41,5 +45,5 @@ export const createLayout = (): Layout => {
   body.append(sidebar, content);
   root.append(body);
 
-  return { root, sidebarContent, content, contentBody, mobileSelect };
+  return { root, sidebarContent, sidebarFooter, content, contentBody, mobileSelect };
 };
