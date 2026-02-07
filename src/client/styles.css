@@ -27,6 +27,9 @@
   --graph-missing-fill: #3b3b3b;
   --graph-missing-stroke: #6b6b6b;
   --graph-text: #e6edf3;
+  --graph-zoom-btn-size: 30px;
+  --graph-zoom-gap: 8px;
+  --graph-zoom-readout-min-width: 72px;
   --radius: 12px;
   --space: 8px;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
@@ -1100,10 +1103,99 @@ select {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: calc(var(--space) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 1.5);
 }
 
 .plan-graph pre {
   margin: 0;
+}
+
+.plan-graph-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--graph-zoom-gap);
+  width: 100%;
+}
+
+.plan-graph-zoom-btn,
+.plan-graph-zoom-reset {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-strong);
+  border-radius: 999px;
+  height: var(--graph-zoom-btn-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.plan-graph-zoom-btn {
+  width: var(--graph-zoom-btn-size);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.plan-graph-zoom-reset {
+  min-width: var(--graph-zoom-readout-min-width);
+  padding: 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.plan-graph-zoom-btn:hover:not(:disabled),
+.plan-graph-zoom-reset:hover:not(:disabled) {
+  border-color: var(--md-h2);
+  color: var(--md-h2);
+}
+
+.plan-graph-zoom-btn:focus-visible,
+.plan-graph-zoom-reset:focus-visible {
+  outline: 2px solid rgba(253, 151, 31, 0.5);
+  outline-offset: 2px;
+}
+
+.plan-graph-zoom-btn:disabled,
+.plan-graph-zoom-reset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.plan-graph-viewport {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 4px);
+  background: rgba(15, 17, 21, 0.35);
+  overflow: hidden;
+  min-height: 320px;
+  flex: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.plan-graph-viewport--dragging {
+  cursor: grabbing;
+}
+
+.plan-graph-canvas {
+  transform-origin: 0 0;
+  width: 100%;
+  min-height: 100%;
+  padding: calc(var(--space) * 1.5);
+}
+
+.plan-graph-canvas .mermaid {
+  display: block;
+  width: 100%;
+}
+
+.plan-graph-canvas svg {
+  width: 100%;
+  max-width: none;
+  height: auto;
 }
 
 .plan-graph svg g.node {
@@ -1134,5 +1226,9 @@ select {
 
   .plan-view {
     grid-template-columns: 1fr;
+  }
+
+  .plan-graph-viewport {
+    min-height: 260px;
   }
 }

@@ -77,6 +77,10 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - For plan-view metadata headers (like PRD paths), align to the markdown max width, allow wrapping, and use muted-strong monospace text for readability.
 - When copy buttons use `data-state` success/error styling, avoid hover styles that override those feedback colors.
 - If a container uses `[hidden]` and a custom `display`, add a `[hidden]` rule to preserve visibility toggles.
+- For transform-based plan graph interactions, keep a dedicated viewport (`overflow: hidden`) and apply transforms to an inner canvas, not the pane container.
+- For plan graph pointer/wheel interactions, use per-render teardown (for example `AbortController`) before re-initializing listeners to avoid duplicate handlers after PRD switches.
+- For drag-pan plus node-click coexistence, use a movement-threshold one-shot suppression so only the immediate post-drag click is ignored.
+- For Mermaid graph zoom via transforms, override responsive SVG width constraints in the canvas context (`max-width: none`) to avoid conflicts with zoom behavior.
 
 ## Client navigation
 
@@ -111,6 +115,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Bun `coverageThreshold` expects singular keys (`line`, `function`, `statement`).
 - Keep `coverageDir` set to `./coverage` and ignore `coverage/` in version control.
 - In Bun tests that touch icon helpers, stub `document.createElementNS` rather than depending on a browser DOM.
+- For graph zoom math, keep calculations in pure helpers and test projection invariants, clamp boundaries, and drag-threshold behavior without DOM dependencies.
 
 ## Notes for changes
 

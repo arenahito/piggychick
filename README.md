@@ -86,6 +86,13 @@ custom skills, including Claude Code, Codex CLI, OpenCode, and others.
 | Main panel (left) | Rendered Markdown content |
 | Main panel (right) | Task dependency graph |
 
+### Dependency Graph Controls
+
+- `+` / `-` buttons: Zoom in and out
+- `100%` button: Reset zoom to default
+- `Ctrl/Meta + mouse wheel`: Zoom at pointer position
+- Drag inside the graph viewport: Pan to hidden graph areas
+
 ---
 
 ## For Developers
