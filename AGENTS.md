@@ -56,6 +56,8 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Reuse TOCTOU-safe file helpers (e.g., `readTextFileWithin`) when reading `plan.json`.
 - If `plan.json` fails to read, fall back to `not_started` instead of breaking the list.
 - Normalize malformed task entries (non-objects or missing `passes`) to keep progress computation resilient.
+- Resolve task progress from `status` when the key exists, and only fall back to `passes` when `status` is absent.
+- If `status` is present but invalid, keep the task as not started (do not fall back to `passes`).
 - Normalize `prdSort` query params with trim/lowercase and apply the same order to all `/api/roots` responses.
 - Client root requests should include `prdSort=desc` to keep PRDs sorted descending.
 - Use `normalizeProgress` for incomplete filters so missing or invalid progress counts as `not_started`.
@@ -65,6 +67,8 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 
 - Keep sidebar status icons aligned by giving the label `flex: 1` and `min-width: 0`.
 - Add `role="img"` with `aria-label` for emoji indicators.
+- For plan graph rendering, keep task states explicit (`done`, `inProgress`, `pending`) and reserve `missing` only for unresolved dependencies.
+- Build dependency lookup maps from explicit task IDs only; do not use fallback display node IDs as dependency keys.
 - Render PRD markdown as separate blocks (plan first) and include a small header for each non-plan section.
 - When displaying worktree info under a PRD title, render it as a muted single-line label with ellipsis (no uppercase transform).
 - For emoji-only toolbar buttons, override text transform and letter spacing to avoid distorting emoji glyphs.
@@ -106,6 +110,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 
 - Bun `coverageThreshold` expects singular keys (`line`, `function`, `statement`).
 - Keep `coverageDir` set to `./coverage` and ignore `coverage/` in version control.
+- In Bun tests that touch icon helpers, stub `document.createElementNS` rather than depending on a browser DOM.
 
 ## Notes for changes
 
