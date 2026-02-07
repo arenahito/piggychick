@@ -62,6 +62,10 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Client root requests should include `prdSort=desc` to keep PRDs sorted descending.
 - Use `normalizeProgress` for incomplete filters so missing or invalid progress counts as `not_started`.
 - Reserve worktree-encoded PRD IDs by disallowing `:` and `wt:` prefixes in PRD folder names.
+- Format PRD display labels from directory names by splitting optional `yyyy-mm-dd` / `yyyy-mm-dd-n...` prefixes from the title slug and title-casing slug words.
+- If date/date-sequence prefixes have no title slug, keep prefix-only labels (for example `2026-02-07` or `2026-02-07-100`) instead of inventing title words.
+- Keep PRD `id` values as raw directory names (display-label formatting must not alter IDs used for routing and reads).
+- When sorting PRDs by normalized labels, add a final deterministic `id` tie-break using raw string comparison (not collator `sensitivity: "base"`).
 
 ## UI and accessibility
 
@@ -116,6 +120,7 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Keep `coverageDir` set to `./coverage` and ignore `coverage/` in version control.
 - In Bun tests that touch icon helpers, stub `document.createElementNS` rather than depending on a browser DOM.
 - For graph zoom math, keep calculations in pure helpers and test projection invariants, clamp boundaries, and drag-threshold behavior without DOM dependencies.
+- For PRD-name collision tests, avoid case-only directory variants (`A-B` vs `a-b`) because case-insensitive filesystems may collapse them; use structurally distinct names instead.
 
 ## Notes for changes
 

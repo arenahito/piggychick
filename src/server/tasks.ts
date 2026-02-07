@@ -134,6 +134,52 @@ const normalizeWorktreeLabel = (rootDirName: string, worktreeDirName: string) =>
   return trimmed || worktreeDirName;
 };
 
+const prdDateSequencePattern = /^(\d{4}-\d{2}-\d{2}-\d+)(?:-(.*))?$/;
+const prdDatePattern = /^(\d{4}-\d{2}-\d{2})(?:-(.*))?$/;
+
+const toTitleWord = (value: string) => {
+  if (value.length === 0) return "";
+  const lower = value.toLowerCase();
+  return lower[0].toUpperCase() + lower.slice(1);
+};
+
+const normalizePrdTitleSlug = (value: string) => {
+  const words = value
+    .split("-")
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0)
+    .map((word) => toTitleWord(word));
+  return words.join(" ");
+};
+
+const compareAscii = (a: string, b: string) => {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+};
+
+const formatPrdLabel = (prdDirName: string) => {
+  let prefix = "";
+  let titleSlug = prdDirName;
+
+  const dateSequenceMatch = prdDirName.match(prdDateSequencePattern);
+  if (dateSequenceMatch) {
+    prefix = dateSequenceMatch[1] ?? "";
+    titleSlug = dateSequenceMatch[2] ?? "";
+  } else {
+    const dateMatch = prdDirName.match(prdDatePattern);
+    if (dateMatch) {
+      prefix = dateMatch[1] ?? "";
+      titleSlug = dateMatch[2] ?? "";
+    }
+  }
+
+  const title = normalizePrdTitleSlug(titleSlug);
+  if (prefix && title) return `${prefix} ${title}`;
+  if (prefix) return prefix;
+  if (title) return title;
+  return prdDirName;
+};
+
 const parseGitDirLine = (line: string) => {
   const trimmed = line.trim();
   if (!trimmed) return null;
@@ -538,10 +584,11 @@ const collectPrds = async (
       const key = docId.toLowerCase();
       return list.findIndex((candidate) => candidate.toLowerCase() === key) === index;
     });
+    const label = formatPrdLabel(entry.name);
 
     results.push({
       id: options.worktree ? encodeWorktreePrdId(options.worktree.id, entry.name) : entry.name,
-      label: entry.name,
+      label,
       docs: dedupedDocs,
       progress,
       worktree: options.worktree
@@ -597,7 +644,9 @@ export const listPrds = async (
     if (worktreeLabelCompare !== 0) return worktreeLabelCompare;
     const worktreeIdA = a.worktree?.id ?? "";
     const worktreeIdB = b.worktree?.id ?? "";
-    return collator.compare(worktreeIdA, worktreeIdB);
+    const worktreeIdCompare = collator.compare(worktreeIdA, worktreeIdB);
+    if (worktreeIdCompare !== 0) return worktreeIdCompare;
+    return compareAscii(a.id, b.id);
   };
 
   return {

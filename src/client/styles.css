@@ -424,8 +424,8 @@ select {
 
 .sidebar-prd-title {
   font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0.02em;
   color: var(--muted-strong);
   overflow: hidden;
   display: -webkit-box;

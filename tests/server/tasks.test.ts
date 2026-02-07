@@ -122,6 +122,53 @@ describe("listPrds", () => {
     });
   });
 
+  test("formats labels from directory names and keeps raw ids", async () => {
+    await withTempRoot(async (root) => {
+      await createPrd(root, "2026-02-07-01-dependency-graph-zoom-controls");
+      await createPrd(root, "2026-02-07-100-dependency-graph-zoom-controls");
+      await createPrd(root, "2026-02-07-100");
+      await createPrd(root, "2026-02-07");
+      await createPrd(root, "2026-02-07-dependency-graph-zoom-controls");
+      await createPrd(root, "dependency-graph-zoom-controls");
+
+      const payload = await listPrds(root);
+      const labelsById = new Map(payload.prds.map((prd) => [prd.id, prd.label]));
+
+      expect(labelsById.get("2026-02-07-01-dependency-graph-zoom-controls")).toBe(
+        "2026-02-07-01 Dependency Graph Zoom Controls",
+      );
+      expect(labelsById.get("2026-02-07-100-dependency-graph-zoom-controls")).toBe(
+        "2026-02-07-100 Dependency Graph Zoom Controls",
+      );
+      expect(labelsById.get("2026-02-07-100")).toBe("2026-02-07-100");
+      expect(labelsById.get("2026-02-07")).toBe("2026-02-07");
+      expect(labelsById.get("2026-02-07-dependency-graph-zoom-controls")).toBe(
+        "2026-02-07 Dependency Graph Zoom Controls",
+      );
+      expect(labelsById.get("dependency-graph-zoom-controls")).toBe(
+        "Dependency Graph Zoom Controls",
+      );
+      expect(labelsById.size).toBe(6);
+      expect(labelsById.has("2026-02-07-01-dependency-graph-zoom-controls")).toBe(true);
+      expect(labelsById.has("2026-02-07")).toBe(true);
+      expect(labelsById.has("2026-02-07-100")).toBe(true);
+      expect(labelsById.has("2026-02-07-100-dependency-graph-zoom-controls")).toBe(true);
+      expect(labelsById.has("2026-02-07-dependency-graph-zoom-controls")).toBe(true);
+      expect(labelsById.has("dependency-graph-zoom-controls")).toBe(true);
+    });
+  });
+
+  test("orders same normalized labels deterministically by id", async () => {
+    await withTempRoot(async (root) => {
+      await createPrd(root, "a-b");
+      await createPrd(root, "a--b");
+
+      const payload = await listPrds(root);
+      expect(payload.prds.map((prd) => prd.id)).toEqual(["a--b", "a-b"]);
+      expect(payload.prds.map((prd) => prd.label)).toEqual(["A B", "A B"]);
+    });
+  });
+
   test("collects docs, excludes plan.md, and filters invalid IDs", async () => {
     await withTempRoot(async (root) => {
       const prdDir = await createPrd(root, "docs", {
