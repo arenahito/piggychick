@@ -1,12 +1,13 @@
 type PlanTask = {
-  id: string;
-  title: string;
-  passes: boolean;
-  dependsOn: string[];
+  id?: unknown;
+  title?: unknown;
+  status?: unknown;
+  passes?: unknown;
+  dependsOn?: unknown;
 };
 
 type PlanData = {
-  tasks: PlanTask[];
+  tasks: unknown[];
 };
 
 export type PlanGraphResult =
@@ -23,10 +24,12 @@ export type PlanGraphNode = {
 
 const graphTheme: Record<GraphTheme, Record<string, string>> = {
   dark: {
-    passFill: "#1f7a3d",
-    passStroke: "#2ecc71",
-    failFill: "#2d3748",
-    failStroke: "#4a5568",
+    doneFill: "#1f7a3d",
+    doneStroke: "#2ecc71",
+    inProgressFill: "#1f4f7a",
+    inProgressStroke: "#7cc4ff",
+    pendingFill: "#2d3748",
+    pendingStroke: "#4a5568",
     missingFill: "#3b3b3b",
     missingStroke: "#6b6b6b",
     text: "#e6edf3",
@@ -39,6 +42,22 @@ const escapeLabel = (label: string) => {
     .replace(/[\]()[|"]/g, " ")
     .replace(/\r?\n/g, " ")
     .trim();
+};
+
+type GraphTaskState = "done" | "in_progress" | "pending";
+
+const hasOwn = (value: object, key: string) => {
+  return Object.prototype.hasOwnProperty.call(value, key);
+};
+
+const resolveTaskState = (task: PlanTask): GraphTaskState => {
+  if (hasOwn(task, "status")) {
+    if (task.status === "done") return "done";
+    if (task.status === "in_progress") return "in_progress";
+    return "pending";
+  }
+
+  return task.passes === true ? "done" : "pending";
 };
 
 export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGraphResult => {
@@ -57,27 +76,44 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
   const lines: string[] = ["flowchart TD"];
   const graphNodes: PlanGraphNode[] = [];
   lines.push(
-    `  classDef pass fill:${palette.passFill},stroke:${palette.passStroke},color:${palette.text}`,
+    `  classDef done fill:${palette.doneFill},stroke:${palette.doneStroke},color:${palette.text}`,
   );
   lines.push(
-    `  classDef fail fill:${palette.failFill},stroke:${palette.failStroke},color:${palette.text}`,
+    `  classDef inProgress fill:${palette.inProgressFill},stroke:${palette.inProgressStroke},color:${palette.text}`,
+  );
+  lines.push(
+    `  classDef pending fill:${palette.pendingFill},stroke:${palette.pendingStroke},color:${palette.text}`,
   );
   lines.push(
     `  classDef missing fill:${palette.missingFill},stroke:${palette.missingStroke},stroke-dasharray: 4 4,color:${palette.text}`,
   );
 
-  const nodes = data.tasks.map((task, index) => ({ task, nodeId: `t${index}` }));
+  const nodes = data.tasks.map((task, index) => {
+    const planTask = (typeof task === "object" && task !== null ? task : {}) as PlanTask;
+    const nodeId = `t${index}`;
+    const resolvedId =
+      typeof planTask.id === "string" && planTask.id.trim().length > 0 ? planTask.id : null;
+    const taskId = resolvedId ?? nodeId;
+    const taskTitle =
+      typeof planTask.title === "string" && planTask.title.trim().length > 0
+        ? planTask.title
+        : taskId;
+    const state = resolveTaskState(planTask);
+    return { task: planTask, nodeId, taskId, taskTitle, resolvedId, state };
+  });
   const idMap = new Map<string, string[]>();
   const missingMap = new Map<string, string>();
 
   for (const node of nodes) {
-    const existing = idMap.get(node.task.id) ?? [];
-    existing.push(node.nodeId);
-    idMap.set(node.task.id, existing);
+    if (node.resolvedId) {
+      const existing = idMap.get(node.resolvedId) ?? [];
+      existing.push(node.nodeId);
+      idMap.set(node.resolvedId, existing);
+    }
 
-    const label = escapeLabel(node.task.title || node.task.id);
+    const label = escapeLabel(node.taskTitle);
     lines.push(`  ${node.nodeId}["${label}"]`);
-    graphNodes.push({ id: node.task.id, title: node.task.title, label });
+    graphNodes.push({ id: node.taskId, title: node.taskTitle, label });
   }
 
   const ensureMissingNode = (dep: string) => {
@@ -92,7 +128,9 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
 
   for (const node of nodes) {
     const nodeIds = [node.nodeId];
-    const deps = Array.isArray(node.task.dependsOn) ? Array.from(new Set(node.task.dependsOn)) : [];
+    const deps = Array.isArray(node.task.dependsOn)
+      ? Array.from(new Set(node.task.dependsOn.filter((dep): dep is string => typeof dep === "string")))
+      : [];
     for (const dep of deps) {
       const depNodes = idMap.get(dep);
       const targets = depNodes && depNodes.length > 0 ? depNodes : [ensureMissingNode(dep)];
@@ -105,7 +143,15 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
   }
 
   for (const node of nodes) {
-    lines.push(`  class ${node.nodeId} ${node.task.passes ? "pass" : "fail"}`);
+    if (node.state === "done") {
+      lines.push(`  class ${node.nodeId} done`);
+      continue;
+    }
+    if (node.state === "in_progress") {
+      lines.push(`  class ${node.nodeId} inProgress`);
+      continue;
+    }
+    lines.push(`  class ${node.nodeId} pending`);
   }
 
   for (const nodeId of missingMap.values()) {

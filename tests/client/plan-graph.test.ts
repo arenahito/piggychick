@@ -28,7 +28,7 @@ describe("buildPlanGraph", () => {
     expect(result.mermaid).toContain("Missing: missing");
     expect(result.mermaid).not.toContain("Task <A>");
     expect(result.mermaid).not.toContain("Task [B]");
-    expect(result.mermaid).toContain("class t0 pass");
-    expect(result.mermaid).toContain("class t1 fail");
+    expect(result.mermaid).toContain("class t0 done");
+    expect(result.mermaid).toContain("class t1 pending");
   });
 });
