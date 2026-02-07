@@ -96,6 +96,9 @@ Each PRD directory must contain:
 
 - `plan.md` - The planning document
 - `plan.json` - Task definitions and dependencies
+  - Preferred progress field: `tasks[].status` (`pending`, `in_progress`, `done`)
+  - Backward compatibility: `tasks[].passes` is still supported when `status` is absent
+  - Precedence rule: when both `status` and `passes` exist, `status` is used
 
 Additional `.md` files are shown as extra documents when present.
 
