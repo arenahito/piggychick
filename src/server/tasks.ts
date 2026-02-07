@@ -366,27 +366,44 @@ const readDirEntries = async (path: string) => {
   }
 };
 
+const resolveTaskProgress = (task: unknown): PrdProgress => {
+  if (typeof task !== "object" || task === null) {
+    return "not_started";
+  }
+
+  const record = task as { status?: unknown; passes?: unknown };
+  if ("status" in record) {
+    if (record.status === "done") return "done";
+    if (record.status === "in_progress") return "in_progress";
+    return "not_started";
+  }
+
+  return record.passes === true ? "done" : "not_started";
+};
+
 const computeProgress = (planJsonText: string): PrdProgress => {
   try {
     const parsed = JSON.parse(planJsonText) as { tasks?: unknown };
     if (!parsed || !Array.isArray(parsed.tasks) || parsed.tasks.length === 0) {
       return "not_started";
     }
-    let allTrue = true;
-    let allFalse = true;
+    let allDone = true;
+    let allNotStarted = true;
     for (const task of parsed.tasks) {
-      const passes =
-        typeof task === "object" && task !== null && "passes" in task
-          ? (task as { passes?: unknown }).passes === true
-          : false;
-      if (passes) {
-        allFalse = false;
-      } else {
-        allTrue = false;
+      const progress = resolveTaskProgress(task);
+      if (progress === "done") {
+        allNotStarted = false;
+        continue;
       }
+      if (progress === "in_progress") {
+        allDone = false;
+        allNotStarted = false;
+        continue;
+      }
+      allDone = false;
     }
-    if (allTrue) return "done";
-    if (allFalse) return "not_started";
+    if (allDone) return "done";
+    if (allNotStarted) return "not_started";
     return "in_progress";
   } catch {
     return "not_started";
