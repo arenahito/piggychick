@@ -55,8 +55,8 @@ pgch add ./path/to/project
 pgch
 ```
 
-Your browser opens automatically, showing all registered projects and their
-planning documents.
+Open `http://localhost:42525` in your browser to view registered projects and
+their planning documents.
 
 ### Other commands
 

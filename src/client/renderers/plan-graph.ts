@@ -129,7 +129,9 @@ export const buildPlanGraph = (planJsonText: string, theme: GraphTheme): PlanGra
   for (const node of nodes) {
     const nodeIds = [node.nodeId];
     const deps = Array.isArray(node.task.dependsOn)
-      ? Array.from(new Set(node.task.dependsOn.filter((dep): dep is string => typeof dep === "string")))
+      ? Array.from(
+          new Set(node.task.dependsOn.filter((dep): dep is string => typeof dep === "string")),
+        )
       : [];
     for (const dep of deps) {
       const depNodes = idMap.get(dep);

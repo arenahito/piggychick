@@ -129,7 +129,10 @@ const parseHash = (): HashRoute | null => {
   const normalizedRoot = rootRaw.toLowerCase();
   const hasTrailing = typeof prdRaw === "string";
   const hasExtra = hasTrailing || extraParts.some((part) => part.length > 0);
-  if ((normalizedRoot === "settings" || normalizedRoot === "config") && (!prdRaw || prdRaw === "")) {
+  if (
+    (normalizedRoot === "settings" || normalizedRoot === "config") &&
+    (!prdRaw || prdRaw === "")
+  ) {
     return { kind: "config", hasExtra };
   }
   if (rootRaw && rootRaw.includes(":")) {
@@ -315,12 +318,12 @@ const updateMobileSelect = () => {
     option.disabled = true;
     select.append(option);
   }
-    for (const entry of entries) {
-      const progress = normalizeProgress(entry.prd.progress);
-      const progressLabel = progressToLabel(progress);
-      const option = document.createElement("option");
-      option.value = `${encodeURIComponent(entry.rootEntry.id)}/${encodeURIComponent(entry.prd.id)}`;
-      const labelText = entry.rootEntry.meta.rootLabel ?? "";
+  for (const entry of entries) {
+    const progress = normalizeProgress(entry.prd.progress);
+    const progressLabel = progressToLabel(progress);
+    const option = document.createElement("option");
+    option.value = `${encodeURIComponent(entry.rootEntry.id)}/${encodeURIComponent(entry.prd.id)}`;
+    const labelText = entry.rootEntry.meta.rootLabel ?? "";
     const branchText = entry.rootEntry.meta.gitBranch ?? "";
     const rootPrefix = labelText
       ? branchText
@@ -331,9 +334,9 @@ const updateMobileSelect = () => {
         : "";
     const worktreeLabel = entry.prd.worktree?.label;
     const prdLabel = worktreeLabel ? `${entry.prd.label} (${worktreeLabel})` : entry.prd.label;
-      option.textContent = rootPrefix
-        ? `${rootPrefix} / ${prdLabel} (${progressLabel})`
-        : `${prdLabel} (${progressLabel})`;
+    option.textContent = rootPrefix
+      ? `${rootPrefix} / ${prdLabel} (${progressLabel})`
+      : `${prdLabel} (${progressLabel})`;
     if (
       selectionVisible &&
       state.selection &&

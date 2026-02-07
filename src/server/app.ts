@@ -104,7 +104,7 @@ export const startServer = async (options: ServerOptions) => {
     },
   });
 
-  const shouldOpenBrowser = options.openBrowser ?? true;
+  const shouldOpenBrowser = options.openBrowser ?? false;
 
   const openBrowser = async () => {
     if (process.env.PGCH_OPEN_BROWSER === "0") return;

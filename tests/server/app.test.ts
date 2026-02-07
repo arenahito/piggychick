@@ -24,6 +24,45 @@ const setupProjectRoot = async () => {
 };
 
 describe("startServer", () => {
+  test("serves static files and API routes without openBrowser option", async () => {
+    const { projectRoot } = await setupProjectRoot();
+    const distRoot = await createTempDir("pgch-dist");
+    const { configDir, configPath } = await setupConfig(projectRoot);
+    const assetsDir = join(distRoot, "assets");
+    await mkdir(assetsDir, { recursive: true });
+    await writeFile(join(distRoot, "index.html"), "<!doctype html><div>Index</div>", "utf8");
+    await writeFile(join(assetsDir, "app.js"), "console.log('app');", "utf8");
+
+    const { server, port } = await startServer({
+      configPath,
+      distRoot,
+      port: 0,
+    });
+
+    try {
+      const base = `http://localhost:${port}`;
+
+      const indexResponse = await fetch(`${base}/`);
+      expect(indexResponse.status).toBe(200);
+      const indexText = await indexResponse.text();
+      expect(indexText).toContain("Index");
+
+      const assetResponse = await fetch(`${base}/assets/app.js`);
+      expect(assetResponse.status).toBe(200);
+      expect(assetResponse.headers.get("Cache-Control")).toBeTruthy();
+
+      const apiResponse = await fetch(`${base}/api/roots`);
+      expect(apiResponse.status).toBe(200);
+      const payload = await apiResponse.json();
+      expect(payload.roots[0]?.prds[0]?.id).toBe("alpha");
+    } finally {
+      await server.stop();
+      await removeTempDir(projectRoot);
+      await removeTempDir(distRoot);
+      await removeTempDir(configDir);
+    }
+  });
+
   test("serves static files and API routes", async () => {
     const { projectRoot } = await setupProjectRoot();
     const distRoot = await createTempDir("pgch-dist");
