@@ -31,4 +31,49 @@ describe("buildPlanGraph", () => {
     expect(result.mermaid).toContain("class t0 done");
     expect(result.mermaid).toContain("class t1 pending");
   });
+
+  test("resolves status before passes and keeps passes fallback", () => {
+    const json = JSON.stringify({
+      tasks: [
+        { id: "s1", title: "status done", status: "done", passes: false, dependsOn: [] },
+        {
+          id: "s2",
+          title: "status in progress",
+          status: "in_progress",
+          passes: true,
+          dependsOn: ["s1"],
+        },
+        { id: "s3", title: "status invalid", status: "paused", passes: true, dependsOn: ["s2"] },
+        { id: "p1", title: "passes done", passes: true, dependsOn: [] },
+        { id: "p2", title: "passes pending", passes: false, dependsOn: ["p1"] },
+      ],
+    });
+
+    const result = buildPlanGraph(json, "dark");
+    expect(result.kind).toBe("graph");
+    if (result.kind !== "graph") return;
+
+    expect(result.mermaid).toContain("class t0 done");
+    expect(result.mermaid).toContain("class t1 inProgress");
+    expect(result.mermaid).toContain("class t2 pending");
+    expect(result.mermaid).toContain("class t3 done");
+    expect(result.mermaid).toContain("class t4 pending");
+  });
+
+  test("does not map dependencies to fallback node ids when task id is missing", () => {
+    const json = JSON.stringify({
+      tasks: [
+        { title: "missing id", status: "done", dependsOn: [] },
+        { id: "t0", title: "explicit id", status: "pending", dependsOn: [] },
+        { id: "consumer", title: "consumer", status: "pending", dependsOn: ["t0"] },
+      ],
+    });
+
+    const result = buildPlanGraph(json, "dark");
+    expect(result.kind).toBe("graph");
+    if (result.kind !== "graph") return;
+
+    expect(result.mermaid).toContain("t1 --> t2");
+    expect(result.mermaid).not.toContain("t0 --> t2");
+  });
 });
