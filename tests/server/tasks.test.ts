@@ -60,7 +60,42 @@ describe("listPrds", () => {
     });
   });
 
-  test("computes progress from plan.json and sorts PRDs", async () => {
+  test("computes progress from status and honors status precedence", async () => {
+    await withTempRoot(async (root) => {
+      await createPrd(root, "alpha", { planJson: { tasks: [{ status: "done" }] } });
+      await createPrd(root, "beta", { planJson: { tasks: [{ status: "pending" }] } });
+      await createPrd(root, "gamma", { planJson: { tasks: [{ status: "in_progress" }] } });
+      await createPrd(root, "delta", {
+        planJson: { tasks: [{ status: "pending", passes: true }] },
+      });
+      await createPrd(root, "epsilon", {
+        planJson: { tasks: [{ status: "done", passes: false }] },
+      });
+      await createPrd(root, "zeta", {
+        planJson: { tasks: [{ status: "paused", passes: true }] },
+      });
+
+      const payload = await listPrds(root);
+      expect(payload.prds.map((prd) => prd.id)).toEqual([
+        "alpha",
+        "beta",
+        "delta",
+        "epsilon",
+        "gamma",
+        "zeta",
+      ]);
+
+      const progress = new Map(payload.prds.map((prd) => [prd.id, prd.progress]));
+      expect(progress.get("alpha")).toBe("done");
+      expect(progress.get("beta")).toBe("not_started");
+      expect(progress.get("gamma")).toBe("in_progress");
+      expect(progress.get("delta")).toBe("not_started");
+      expect(progress.get("epsilon")).toBe("done");
+      expect(progress.get("zeta")).toBe("not_started");
+    });
+  });
+
+  test("keeps passes-only progress compatibility", async () => {
     await withTempRoot(async (root) => {
       await createPrd(root, "alpha", { planJson: { tasks: [{ passes: true }] } });
       await createPrd(root, "beta", { planJson: { tasks: [{ passes: false }] } });
