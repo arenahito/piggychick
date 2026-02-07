@@ -207,15 +207,15 @@ Result in `plan.json`:
 ```json
 {
   "tasks": [
-    { "id": "b1-uuid", "title": "B1: Create Model", "passes": false, "dependsOn": [] },
-    { "id": "b2-uuid", "title": "B2: Create Service", "passes": false, "dependsOn": ["b1-uuid"] },
-    { "id": "b3-uuid", "title": "B3: Create API", "passes": false, "dependsOn": ["b2-uuid"] },
-    { "id": "f1-uuid", "title": "F1: Create Form", "passes": false, "dependsOn": ["b2-uuid"] }
+    { "id": "b1-uuid", "title": "B1: Create Model", "status": "pending", "dependsOn": [] },
+    { "id": "b2-uuid", "title": "B2: Create Service", "status": "pending", "dependsOn": ["b1-uuid"] },
+    { "id": "b3-uuid", "title": "B3: Create API", "status": "pending", "dependsOn": ["b2-uuid"] },
+    { "id": "f1-uuid", "title": "F1: Create Form", "status": "pending", "dependsOn": ["b2-uuid"] }
   ]
 }
 ```
 
-**Note**: The `passes` field indicates whether the task implementation and verification is complete. Initially `false`, set to `true` when the task passes all acceptance criteria. See [references/plan-json-schema.md](references/plan-json-schema.md) for full schema.
+**Note**: The `status` field tracks task progress: `"pending"` (not started), `"in_progress"` (currently being implemented), `"done"` (passes all acceptance criteria). See [references/plan-json-schema.md](references/plan-json-schema.md) for full schema.
 
 ### 5. Save the Plan
 

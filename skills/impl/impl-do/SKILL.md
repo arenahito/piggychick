@@ -51,15 +51,16 @@ Read `plan.json` from the `.tasks/{YYYY-MM-DD}-{nn}-{slug}/` directory.
 
 #### Register Todos
 
-Use the todo tool to register and update todos from the `tasks` array:
+Register and track todos from the `tasks` array using your environment's task management mechanism (e.g., todo tool, task list, or equivalent):
 
 - **1 task = 1 todo** (strict 1:1 mapping)
 - **DO NOT combine multiple tasks into a single todo**
 - Use task prefix as todo ID (e.g., `B1`, `F2`)
 - Use task title as todo content (e.g., `B1: Create User Model`)
-- If `passes = true`, register as "completed" (for resuming interrupted work)
-- If `passes = false`, register as "pending"
-- Update todo status via the tool as each task completes
+- If `status = "done"`, register as "completed" (for resuming interrupted work)
+- If `status = "in_progress"`, reset to `"pending"` in `plan.json` and register as "pending" (previous execution was interrupted; re-execute from scratch)
+- If `status = "pending"`, register as "pending"
+- Update todo status as each task completes
 
 **Example** - If `plan.json` has 3 tasks (B1, B2, F1), create exactly 3 todos:
 
@@ -78,15 +79,16 @@ Execute tasks based on dependency resolution. For each task, perform implementat
 **Task Execution Loop**:
 
 1. **Get next task**: Find the next executable task from `plan.json`
-   - Task has `passes = false`
-   - All tasks in `dependsOn` have `passes = true` (or `dependsOn` is empty)
-2. **Read task details**: Get task details from `plan.md` (description, file paths, acceptance criteria, etc.)
-3. **Implement**: Execute the task implementation
-4. **Verify**: Run verification checks (see Verification below)
-5. **Self-review**: Review and fix issues (see Self-Review below)
-6. **External review**: Request external review via subagent (see External Review below)
-7. **Complete task**:
-   - Mark task as complete in `plan.json` (set `passes: true`)
+   - Task has `status = "pending"`
+   - All tasks in `dependsOn` have `status = "done"` (or `dependsOn` is empty)
+2. **Mark task as in progress**: Set `status: "in_progress"` in `plan.json`
+3. **Read task details**: Get task details from `plan.md` (description, file paths, acceptance criteria, etc.)
+4. **Implement**: Execute the task implementation
+5. **Verify**: Run verification checks (see Verification below)
+6. **Self-review**: Review and fix issues (see Self-Review below)
+7. **External review**: Request external review via subagent (see External Review below)
+8. **Complete task**:
+   - Mark task as complete in `plan.json` (set `status: "done"`)
    - Record learnings in memory.md (see Memory Recording below)
    - Git commit all changes (see Git Commit below)
    - Update todo status
@@ -165,8 +167,10 @@ After self-review passes, **perform external review using a subagent**:
 
 **IMPORTANT**: External review is high-cost. Resolve all self-review issues BEFORE requesting external review.
 
-1. **Launch review subagent** (first review for this task)
-   - Keep the agent ID in session memory for re-review
+1. **Launch or resume review subagent**
+   - If no review subagent exists yet, launch one and store the agent ID in session memory
+   - If a review subagent already exists (from previous tasks), resume it using the stored agent ID
+   - The same subagent is reused across ALL tasks in the workflow
 
 2. **Process review findings**
    - Identify all issues and suggestions from subagent response
@@ -181,10 +185,7 @@ After self-review passes, **perform external review using a subagent**:
 4. **If no issues**:
    - External review passed
    - Mark task as complete and proceed to next task
-
-5. **After external review completes**:
-   - If a subagent terminate function is available, terminate the review subagent by specifying the stored agent ID
-   - If termination is not supported, do nothing
+   - Do NOT terminate the subagent (it will be reused for the next task)
 
 #### Memory Recording
 
@@ -246,12 +247,13 @@ After recording learnings, commit all changes for this task:
 
 Before reporting completion to user:
 
-1. Verify all tasks in `plan.json` have `passes = true`
+1. Verify all tasks in `plan.json` have `status = "done"`
 2. Verify all todos are marked as completed
 3. If any task is incomplete, return to Phase 2 and complete remaining tasks
-4. Update AGENTS.md with learnings (see below)
-5. Git commit the AGENTS.md updates (use commit message: `docs: update AGENTS.md with learnings from {slug}`)
-6. Provide summary of completed work
+4. **Terminate review subagent**: If a review subagent was used and a terminate function is available, terminate it by specifying the stored agent ID. If termination is not supported, do nothing.
+5. Update AGENTS.md with learnings (see below)
+6. Git commit the AGENTS.md updates (use commit message: `docs: update AGENTS.md with learnings from {slug}`)
+7. Provide summary of completed work
 
 #### Update AGENTS.md
 
@@ -313,8 +315,8 @@ Integrate universally applicable learnings from `memory.md` into AGENTS.md:
 - **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit → Mark complete
 - **Run verification after implementation** - Execute lint, tests, and build checks; fix all issues before self-review
 - **Resolve ALL self-review issues before external review** - External review is high-cost; do not waste it on issues you can find yourself
-- **Use subagent for external review** - Launch a review subagent for each task
-- **Keep subagent ID in session memory** - Store the agent ID to resume the same subagent for re-reviews within the same task
+- **Use single subagent for external review** - Reuse the same review subagent across ALL tasks in the workflow
+- **Keep subagent ID in session memory** - Store the agent ID to resume the same subagent for all external reviews throughout the workflow
 - **Record learnings in memory.md** - After each task, document discoveries, gotchas, and patterns in memory.md
 - **Update appropriate AGENTS.md** - AGENTS.md can exist in root and subdirectories; match learnings to the closest relevant file
 - **Create AGENTS.md if none exists** - If no AGENTS.md exists in the repository, create one at root with universal learnings
