@@ -1,8 +1,5 @@
 # PiggyChick
 
-> [!WARNING]
-> This project is under active development and not yet published to npm.
-
 **A friendly viewer for AI-generated planning documents.**
 
 ![PiggyChick](docs/piggychick.jpg)
@@ -127,6 +124,13 @@ Location: `~/.config/piggychick/config.jsonc`
 
 - `tasksDir`: Task directory name (default: `.tasks`)
 - `roots`: List of projects to monitor. Each project can override `tasksDir`
+
+### Release Automation
+
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for changes that should appear in release notes.
+- `release-please` runs on pushes to `main` and opens/updates a release PR.
+- Merging the release PR triggers automated lint, typecheck, test, build, and npm publish.
+- npm publishing uses Trusted Publishing (OIDC). Configure npm Trusted Publisher for `.github/workflows/release-please.yml`.
 
 ### Development Setup
 
