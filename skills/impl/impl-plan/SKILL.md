@@ -24,6 +24,7 @@ Collect necessary information before planning:
 - Clarify the goal and scope of the task
 - **For existing codebases only**: Investigate existing code to identify affected files and understand existing patterns (skip for new projects with no existing code)
 - Identify dependencies and constraints
+- **Record external sources**: If the user references external sources (Notion pages, Figma designs, GitHub issues, Jira tickets, Slack threads, etc.), collect their URLs/identifiers and include them in the plan's Sources section
 
 **Clarification Process**:
 
@@ -42,7 +43,7 @@ Topics that may require clarification:
 
 Break down the task into implementable units:
 
-- Each task should be completable in 15-60 minutes (see [Task Granularity](#task-granularity) for details)
+- Each task should be a coherent unit of functionality (see [Task Granularity](#task-granularity) for details)
 - Tasks should have clear inputs and outputs
 - Note which tasks depend on others (detailed dependency analysis in step 4)
 
@@ -93,6 +94,16 @@ Clear statement of the end state after implementation.
 
 - Required knowledge or context
 - Dependencies that must be in place
+
+## Sources
+
+External references provided as input for this plan. Include URLs, document titles, and a brief note on what each source covers.
+
+| Source | URL / Identifier | Description |
+|--------|-----------------|-------------|
+| {Source name} | {URL or identifier} | {What this source covers} |
+
+> Omit this section if no external sources were provided.
 
 ## Design
 
@@ -257,7 +268,7 @@ Both self-review and external review evaluate the plan against these criteria:
 | **Completeness** | All requirements are covered by tasks |
 | **Clarity** | Tasks are unambiguous and have sufficient detail |
 | **Dependencies** | Dependency graph is correct and has no cycles |
-| **Granularity** | Tasks are appropriately sized (15-60 minutes each) |
+| **Granularity** | Tasks are coherent functional units, not over-fragmented. Implementation and tests are in the same task |
 | **Acceptance Criteria** | Each task has verifiable acceptance criteria |
 | **Scope** | Tasks stay within defined scope boundaries |
 | **Risks** | Potential risks or blockers are identified |
@@ -318,13 +329,15 @@ sequenceDiagram
 
 ### Task Granularity
 
-Each task should be sized for focused implementation:
+Each task should represent a coherent unit of functionality:
 
-- Modify 1-3 files typically
-- Take 15-60 minutes to implement
-- Be completable in a single coding session
+- Represent a coherent unit of functionality that can be independently verified
+- Group closely related changes together within the same build unit (e.g., model + service layer + route handler in a single application)
+- **Split across build unit boundaries** — when changes span different build units (e.g., separate packages in a monorepo such as BFF, backend service, and frontend), create separate tasks for each unit. Different build units have independent build, test, and deploy processes, making them natural task boundaries.
+- Split only when a task has a genuinely different concern or can be tested in isolation
+- **Implementation and tests are always a single task** — never separate test code into its own task. Each task includes writing the production code AND its corresponding tests. Acceptance criteria should reflect both implementation correctness and test coverage.
 
-Complex tasks exceeding these guidelines should be split into smaller subtasks.
+Do NOT split tasks based on file count or estimated time alone. Over-fragmentation (e.g., separating a model from its directly associated service, or separating tests from their implementation) makes implementation harder, not easier.
 
 ### Detail Level
 

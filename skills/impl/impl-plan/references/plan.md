@@ -18,6 +18,14 @@ Users can register, login, and access protected routes with JWT tokens.
 - Database schema for users table exists
 - bcrypt and jsonwebtoken packages installed
 
+## Sources
+
+| Source | URL / Identifier | Description |
+|--------|-----------------|-------------|
+| Feature spec (Notion) | https://notion.so/team/auth-feature-spec-abc123 | Requirements and acceptance criteria for user authentication |
+| Login screen design (Figma) | https://figma.com/file/xyz789/auth-screens | UI designs for login and registration forms |
+| Security requirements (Jira) | PROJ-456 | Non-functional requirements for token handling and rate limiting |
+
 ## Design
 
 ### Authentication Flow
