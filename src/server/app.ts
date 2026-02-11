@@ -77,7 +77,17 @@ export const startServer = async (options: ServerOptions) => {
       if (url.pathname.startsWith("/api/")) {
         return handleApiRequest(request, configPath);
       }
-      const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
+      const rawPathname = url.pathname === "/" ? "/index.html" : url.pathname;
+      const pathname = (() => {
+        try {
+          return decodeURIComponent(rawPathname);
+        } catch {
+          return null;
+        }
+      })();
+      if (!pathname || pathname.includes("\0")) {
+        return new Response("Not Found", { status: 404, headers: notFoundHeaders });
+      }
       const candidate = resolve(distRootReal, pathname.slice(1));
       if (!isWithinRoot(candidate)) {
         return new Response("Not Found", { status: 404, headers: notFoundHeaders });

@@ -170,8 +170,8 @@ describe("startServer", () => {
     });
 
     try {
-      const drive = process.cwd().slice(0, 2);
-      const response = await fetch(`http://localhost:${port}/${drive}/outside.txt`);
+      const outsidePath = "/%2Ftmp/outside.txt";
+      const response = await fetch(`http://localhost:${port}${outsidePath}`);
       expect(response.status).toBe(404);
       const text = await response.text();
       expect(text).toContain("Not Found");
