@@ -31,6 +31,44 @@ type MermaidTheme = "dark" | "default";
 let mermaidConfigured = false;
 let currentTheme: MermaidTheme = "dark";
 
+type D3ListenerEntry = {
+  type: string;
+  listener: EventListener;
+  options?: boolean | AddEventListenerOptions;
+};
+
+type D3ListenerNode = Element & {
+  __on?: D3ListenerEntry[];
+};
+
+const disableMermaidNativeTooltips = (container: HTMLElement) => {
+  const elements = container.querySelectorAll<SVGGElement>(".mermaid svg g[title]");
+  for (const element of elements) {
+    element.removeAttribute("title");
+  }
+  const nodes = container.querySelectorAll<Element>(".mermaid svg g.node");
+  for (const node of nodes) {
+    const d3Node = node as D3ListenerNode;
+    const listeners = Array.isArray(d3Node.__on) ? d3Node.__on : null;
+    if (!listeners) {
+      continue;
+    }
+    const nextListeners: D3ListenerEntry[] = [];
+    for (const entry of listeners) {
+      if (entry.type === "mouseover" || entry.type === "mouseout") {
+        node.removeEventListener(entry.type, entry.listener, entry.options);
+        continue;
+      }
+      nextListeners.push(entry);
+    }
+    if (nextListeners.length === 0) {
+      Reflect.deleteProperty(d3Node, "__on");
+      continue;
+    }
+    d3Node.__on = nextListeners;
+  }
+};
+
 export const setMermaidTheme = (theme: MermaidTheme) => {
   currentTheme = theme;
   mermaid.initialize({
@@ -67,6 +105,7 @@ export const renderMermaid = async (container: HTMLElement) => {
   }
   try {
     await mermaid.run({ nodes });
+    disableMermaidNativeTooltips(container);
   } catch (error) {
     console.warn("Mermaid render failed", error);
   }

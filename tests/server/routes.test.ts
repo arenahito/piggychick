@@ -1,7 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createPrd, createTempDir, removeTempDir } from "../helpers/fs";
+import {
+  emitSyntheticRootChangeForTests,
+  getRootEventsDebugSnapshot,
+  resetRootEventsForTests,
+} from "../../src/server/prd-events";
 import { handleApiRequest } from "../../src/server/routes";
 
 const withTempRoot = async (fn: (root: string, configPath: string) => Promise<void>) => {
@@ -22,6 +27,78 @@ const withTempRoot = async (fn: (root: string, configPath: string) => Promise<vo
     await removeTempDir(configDir);
   }
 };
+
+const readChangedEvent = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs = 5000,
+) => {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    const result = await Promise.race([
+      reader.read(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), remaining)),
+    ]);
+    if (result === null) {
+      throw new Error("Timed out waiting for SSE event");
+    }
+    if (result.done) {
+      throw new Error("SSE stream closed");
+    }
+    buffer += decoder.decode(result.value, { stream: true }).replace(/\r\n/g, "\n");
+    while (true) {
+      const separator = buffer.indexOf("\n\n");
+      if (separator < 0) break;
+      const frame = buffer.slice(0, separator);
+      buffer = buffer.slice(separator + 2);
+      const lines = frame.split("\n");
+      let eventName = "message";
+      let data = "";
+      for (const line of lines) {
+        if (line.startsWith(":")) continue;
+        if (line.startsWith("event:")) {
+          eventName = line.slice("event:".length).trim();
+          continue;
+        }
+        if (line.startsWith("data:")) {
+          data += line.slice("data:".length).trim();
+        }
+      }
+      if (eventName !== "changed" || data.length === 0) continue;
+      return JSON.parse(data) as { kind: string; rootId: string; prdId: string | null; at: string };
+    }
+  }
+  throw new Error("Timed out waiting for SSE event");
+};
+
+const readChangedEventWithin = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs: number,
+) => {
+  try {
+    return await readChangedEvent(reader, timeoutMs);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Timed out")) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const waitFor = async (predicate: () => boolean, timeoutMs = 2000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) return;
+    await Bun.sleep(20);
+  }
+  throw new Error("Timed out waiting for condition");
+};
+
+afterEach(() => {
+  resetRootEventsForTests();
+});
 
 describe("handleApiRequest", () => {
   test("rejects non-GET methods", async () => {
@@ -360,6 +437,134 @@ describe("handleApiRequest", () => {
       expect(response.status).toBe(200);
       const payload = await response.json();
       expect(payload.roots).toHaveLength(0);
+    });
+  });
+
+  test("streams root change events with inferred prd id", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const tasksRoot = join(root, ".tasks");
+      await createPrd(tasksRoot, "alpha");
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id as string;
+      const controller = new AbortController();
+      const eventsRequest = new Request(`http://localhost/api/roots/${rootId}/events`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      const eventsResponse = await handleApiRequest(eventsRequest, configPath);
+      expect(eventsResponse.status).toBe(200);
+      expect(eventsResponse.headers.get("Content-Type")).toContain("text/event-stream");
+      expect(eventsResponse.headers.get("Cache-Control")).toBe("no-cache");
+      expect(eventsResponse.headers.get("Connection")).toBe("keep-alive");
+      expect(eventsResponse.headers.get("X-Accel-Buffering")).toBe("no");
+      const reader = eventsResponse.body?.getReader();
+      if (!reader) throw new Error("Missing SSE stream body");
+
+      await writeFile(
+        join(tasksRoot, "alpha", "plan.json"),
+        JSON.stringify({ tasks: [{ status: "done" }] }),
+        "utf8",
+      );
+      const event = await readChangedEvent(reader);
+      expect(event.kind).toBe("changed");
+      expect(event.rootId).toBe(rootId);
+      expect(event.prdId).toBe("alpha");
+      expect(typeof event.at).toBe("string");
+      controller.abort();
+      await reader.cancel().catch(() => {});
+    });
+  });
+
+  test("returns invalid_root for unknown root events endpoint", async () => {
+    await withTempRoot(async (_root, configPath) => {
+      const request = new Request("http://localhost/api/roots/missing/events");
+      const response = await handleApiRequest(request, configPath);
+      expect(response.status).toBe(404);
+      const payload = await response.json();
+      expect(payload.error?.code).toBe("invalid_root");
+    });
+  });
+
+  test("coalesces burst changes and emits null prdId for multi-prd updates", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const tasksRoot = join(root, ".tasks");
+      await createPrd(tasksRoot, "alpha");
+      await createPrd(tasksRoot, "beta");
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id as string;
+      const controller = new AbortController();
+      const eventsRequest = new Request(`http://localhost/api/roots/${rootId}/events`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      const eventsResponse = await handleApiRequest(eventsRequest, configPath);
+      const reader = eventsResponse.body?.getReader();
+      if (!reader) throw new Error("Missing SSE stream body");
+
+      const emittedAlpha = emitSyntheticRootChangeForTests(rootId, "alpha/plan.json");
+      const emittedBeta = emitSyntheticRootChangeForTests(rootId, "beta/plan.json");
+      expect(emittedAlpha).toBe(true);
+      expect(emittedBeta).toBe(true);
+
+      const event = await readChangedEvent(reader);
+      expect(event.rootId).toBe(rootId);
+      expect(event.prdId).toBeNull();
+      const extra = await readChangedEventWithin(reader, 350);
+      expect(extra).toBeNull();
+      controller.abort();
+      await reader.cancel().catch(() => {});
+    });
+  });
+
+  test("releases watcher resources after stream cancellation", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const tasksRoot = join(root, ".tasks");
+      await createPrd(tasksRoot, "alpha");
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id as string;
+      const controller = new AbortController();
+      const eventsRequest = new Request(`http://localhost/api/roots/${rootId}/events`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      const eventsResponse = await handleApiRequest(eventsRequest, configPath);
+      const reader = eventsResponse.body?.getReader();
+      if (!reader) throw new Error("Missing SSE stream body");
+      await waitFor(() => getRootEventsDebugSnapshot().subscribers > 0);
+      controller.abort();
+      await reader.cancel().catch(() => {});
+      await waitFor(() => getRootEventsDebugSnapshot().subscribers === 0);
+      await waitFor(() => getRootEventsDebugSnapshot().roots === 0);
+    });
+  });
+
+  test("does not retain subscribers for already-aborted events requests", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const tasksRoot = join(root, ".tasks");
+      await createPrd(tasksRoot, "alpha");
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id as string;
+      const controller = new AbortController();
+      controller.abort();
+      const eventsRequest = new Request(`http://localhost/api/roots/${rootId}/events`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      const eventsResponse = await handleApiRequest(eventsRequest, configPath);
+      const reader = eventsResponse.body?.getReader();
+      if (reader) {
+        await reader.cancel().catch(() => {});
+      }
+      await waitFor(() => getRootEventsDebugSnapshot().subscribers === 0);
+      await waitFor(() => getRootEventsDebugSnapshot().roots === 0);
     });
   });
 });

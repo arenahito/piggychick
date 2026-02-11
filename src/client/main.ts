@@ -15,6 +15,14 @@ import {
 import { createLayout } from "./components/layout";
 import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
+import {
+  createCoalescedAsyncRunner,
+  createRootEventsSubscription,
+  reconcileRootSubscriptions,
+  shouldReloadActivePlanFromEvents,
+  type RootChangedEvent,
+  type RootEventsSubscription,
+} from "./live-reload";
 import { renderMarkdown, renderMermaid, setMermaidTheme } from "./renderers/markdown";
 import { normalizeProgress, progressToLabel } from "./progress";
 import "./styles.css";
@@ -62,6 +70,8 @@ const showIncompleteOnlyKey = "pgch.sidebarShowIncompleteOnly";
 let selectionRequest = 0;
 let configRequest = 0;
 let configHandle: ConfigEditorHandle | null = null;
+let rootEventSubscriptions = new Map<string, RootEventsSubscription>();
+let pendingRootChangeEvents: RootChangedEvent[] = [];
 
 const readBooleanRecord = (key: string) => {
   try {
@@ -113,6 +123,11 @@ const writeShowIncompleteOnly = (value: boolean) => {
 type HashRoute =
   | { kind: "config"; hasExtra: boolean }
   | { kind: "prd"; rootId: string; prdId: string; hasExtra: boolean };
+
+type PlanViewportSnapshot = {
+  markdown: { top: number; left: number } | null;
+  graph: { top: number; left: number } | null;
+};
 
 const settingsHash = "#/settings";
 
@@ -280,6 +295,38 @@ const renderError = (message: string) => {
   note.className = "content-error";
   note.textContent = message;
   layout.contentBody.append(note);
+};
+
+const capturePlanViewportSnapshot = (): PlanViewportSnapshot | null => {
+  const markdownPane = layout.contentBody.querySelector<HTMLElement>(".plan-pane.plan-markdown");
+  const graphPane = layout.contentBody.querySelector<HTMLElement>(".plan-pane.plan-graph");
+  const markdown =
+    markdownPane === null ? null : { top: markdownPane.scrollTop, left: markdownPane.scrollLeft };
+  const graph =
+    graphPane === null ? null : { top: graphPane.scrollTop, left: graphPane.scrollLeft };
+  if (!markdown && !graph) {
+    return null;
+  }
+  return { markdown, graph };
+};
+
+const restoreScrollOffset = (pane: HTMLElement, top: number, left: number) => {
+  const maxTop = Math.max(0, pane.scrollHeight - pane.clientHeight);
+  const maxLeft = Math.max(0, pane.scrollWidth - pane.clientWidth);
+  pane.scrollTop = Math.min(Math.max(0, top), maxTop);
+  pane.scrollLeft = Math.min(Math.max(0, left), maxLeft);
+};
+
+const restorePlanViewportSnapshot = (snapshot: PlanViewportSnapshot | null) => {
+  if (!snapshot) return;
+  const markdownPane = layout.contentBody.querySelector<HTMLElement>(".plan-pane.plan-markdown");
+  if (markdownPane && snapshot.markdown) {
+    restoreScrollOffset(markdownPane, snapshot.markdown.top, snapshot.markdown.left);
+  }
+  const graphPane = layout.contentBody.querySelector<HTMLElement>(".plan-pane.plan-graph");
+  if (graphPane && snapshot.graph) {
+    restoreScrollOffset(graphPane, snapshot.graph.top, snapshot.graph.left);
+  }
 };
 
 const filterPrds = (prds: RootSummary["prds"]) => {
@@ -588,7 +635,12 @@ const refreshSidebar = () => {
   updateMobileSelect();
 };
 
-const loadSelection = async () => {
+type LoadSelectionOptions = {
+  showLoading?: boolean;
+  preserveViewport?: boolean;
+};
+
+const loadSelection = async (options: LoadSelectionOptions = {}) => {
   if (state.viewMode === "config") {
     return;
   }
@@ -601,8 +653,13 @@ const loadSelection = async () => {
     return;
   }
 
+  const showLoading = options.showLoading ?? true;
+  const preserveViewport = options.preserveViewport ?? false;
+  const planViewportSnapshot = preserveViewport ? capturePlanViewportSnapshot() : null;
   const { rootId, prdId } = state.selection;
-  renderContent("Loading…");
+  if (showLoading) {
+    renderContent("Loading…");
+  }
 
   const requestId = ++selectionRequest;
   try {
@@ -658,10 +715,16 @@ const loadSelection = async () => {
       ),
     ];
 
-    layout.contentBody.innerHTML = "";
-    const planContainer = document.createElement("div");
-    planContainer.className = "plan-container";
-    layout.contentBody.append(planContainer);
+    let planContainer =
+      preserveViewport && !showLoading
+        ? layout.contentBody.querySelector<HTMLElement>(".plan-container")
+        : null;
+    if (!planContainer) {
+      layout.contentBody.innerHTML = "";
+      planContainer = document.createElement("div");
+      planContainer.className = "plan-container";
+      layout.contentBody.append(planContainer);
+    }
     state.lastPlan = {
       rootId,
       prdId,
@@ -676,6 +739,14 @@ const loadSelection = async () => {
       currentTheme,
       payload.prdPath,
     );
+    if (preserveViewport && planViewportSnapshot) {
+      window.requestAnimationFrame(() => {
+        if (requestId !== selectionRequest) {
+          return;
+        }
+        restorePlanViewportSnapshot(planViewportSnapshot);
+      });
+    }
   } catch (error) {
     if (requestId !== selectionRequest) {
       return;
@@ -683,6 +754,47 @@ const loadSelection = async () => {
     const message = error instanceof Error ? error.message : "Failed to load content";
     renderError(message);
   }
+};
+
+const closeAllRootEventStreams = () => {
+  for (const subscription of rootEventSubscriptions.values()) {
+    subscription.close();
+  }
+  rootEventSubscriptions.clear();
+};
+
+const runLiveRefresh = async () => {
+  const rootChangeEvents = pendingRootChangeEvents;
+  pendingRootChangeEvents = [];
+  try {
+    const payload = await fetchRoots();
+    const { didUpdateHash, kind } = await syncRoots(payload, { allowLoadSelection: false });
+    if (kind === "config" || state.viewMode === "config") {
+      return;
+    }
+    const shouldReloadActivePlan =
+      !didUpdateHash && shouldReloadActivePlanFromEvents(state.selection, rootChangeEvents);
+    if (shouldReloadActivePlan) {
+      await loadSelection({ showLoading: false, preserveViewport: true });
+    }
+  } catch {
+    pendingRootChangeEvents = [...rootChangeEvents, ...pendingRootChangeEvents];
+    return;
+  }
+};
+
+const liveRefreshRunner = createCoalescedAsyncRunner(runLiveRefresh);
+
+const handleRootChangedEvent = (event: RootChangedEvent) => {
+  pendingRootChangeEvents.push(event);
+  liveRefreshRunner.trigger();
+};
+
+const reconcileRootEventStreams = () => {
+  const rootIds = state.roots.map((rootEntry) => rootEntry.id);
+  rootEventSubscriptions = reconcileRootSubscriptions(rootEventSubscriptions, rootIds, (rootId) =>
+    createRootEventsSubscription(rootId, handleRootChangedEvent),
+  );
 };
 
 const syncRoots = async (
@@ -705,6 +817,7 @@ const syncRoots = async (
   writeCollapsedRoots(state.collapsedRoots);
   state.expandedRoots = pruneRecord(state.expandedRoots);
   writeExpandedRoots(state.expandedRoots);
+  reconcileRootEventStreams();
   const route = parseHash();
   const { didUpdateHash, kind } = ensureSelection(route);
   refreshSidebar();
@@ -750,6 +863,10 @@ window.addEventListener("hashchange", async () => {
   if (!didUpdateHash) {
     await loadSelection();
   }
+});
+
+window.addEventListener("beforeunload", () => {
+  closeAllRootEventStreams();
 });
 
 void bootstrap();

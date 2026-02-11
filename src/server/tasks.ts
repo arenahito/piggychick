@@ -55,6 +55,11 @@ type GitInfo = {
   isWorktree: boolean;
 };
 
+export type RootWatchTarget = {
+  path: string;
+  worktreeId: string | null;
+};
+
 export class TasksError extends Error {
   code: string;
   status: number;
@@ -686,6 +691,54 @@ export const resolveRootById = async (rootId: string, configPath = resolveConfig
   const entries = buildRootEntries(normalized.roots);
   const match = entries.find((entry) => entry.id === rootId);
   return match?.root ?? null;
+};
+
+const collectRootWatchTargets = async (root: NormalizedRoot): Promise<RootWatchTarget[]> => {
+  const targets: RootWatchTarget[] = [];
+  const seen = new Set<string>();
+
+  const addTarget = async (candidate: string, worktreeId: string | null) => {
+    const resolved = await realpath(candidate).catch(() => null);
+    if (!resolved) return;
+    if (!(await dirExists(resolved))) return;
+    const key = `${worktreeId ?? "main"}:${resolved.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    targets.push({ path: resolved, worktreeId });
+  };
+
+  await addTarget(resolveTasksDirPath(root.path, root.tasksDir), null);
+  const gitInfo = await resolveGitInfo(root.path).catch(() => ({
+    gitDir: null,
+    isWorktree: false,
+  }));
+  if (gitInfo.gitDir && !gitInfo.isWorktree) {
+    const worktrees = await listGitWorktrees(root.path, gitInfo.gitDir).catch(() => []);
+    for (const worktree of worktrees) {
+      await addTarget(resolveTasksDirPath(worktree.path, root.tasksDir), worktree.id);
+    }
+  }
+
+  return targets;
+};
+
+export const listRootWatchTargetsByRootId = async (
+  rootId: string,
+  configPath = resolveConfigPath(),
+): Promise<RootWatchTarget[]> => {
+  const root = await resolveRootById(rootId, configPath);
+  if (!root) {
+    throw new TasksError("invalid_root", 404, "Root not found");
+  }
+  return collectRootWatchTargets(root);
+};
+
+export const inferPrdIdFromWatchPath = (target: RootWatchTarget, relativePath: string) => {
+  const normalizedPath = relativePath.replace(/\\/g, "/").trim();
+  if (!normalizedPath) return null;
+  const [prdDir] = normalizedPath.split("/");
+  if (!prdDir || !isSafePrd(prdDir)) return null;
+  return target.worktreeId ? encodeWorktreePrdId(target.worktreeId, prdDir) : prdDir;
 };
 
 const resolveTasksRootForPrd = async (root: NormalizedRoot, identity: PrdIdentity) => {

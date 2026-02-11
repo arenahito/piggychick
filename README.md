@@ -83,8 +83,9 @@ custom skills, including Claude Code, Codex CLI, OpenCode, and others.
 | Element | Description |
 |---------|-------------|
 | Sidebar | Project and PRD list with progress indicators |
-| Main panel (left) | Rendered Markdown content |
-| Main panel (right) | Task dependency graph |
+| Main panel | Rendered plan markdown and task dependency graph views |
+
+Changes under `.tasks` are picked up automatically in the UI while the viewer is open.
 
 ### Dependency Graph Controls
 

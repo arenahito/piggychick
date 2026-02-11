@@ -11,6 +11,7 @@ import {
   toConfigFile,
   writeConfigText,
 } from "../shared/config";
+import { createRootEventsResponse } from "./prd-events";
 import {
   listRoots,
   readMarkdownByRoot,
@@ -168,6 +169,21 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
       }
     }
     return jsonError(405, "method_not_allowed", "Method not allowed");
+  }
+
+  if (segments[1] === "roots" && segments.length === 4 && segments[3] === "events") {
+    if (request.method !== "GET") {
+      return jsonError(405, "method_not_allowed", "Method not allowed");
+    }
+    const rootId = decodeSegment(segments[2]);
+    if (!rootId) {
+      return jsonError(400, "invalid_request", "Invalid root id");
+    }
+    try {
+      return await createRootEventsResponse(request, rootId, configPath);
+    } catch (error) {
+      return handleTasksError(error);
+    }
   }
 
   if (segments[1] === "roots" && segments[3] === "prds" && segments.length === 6) {

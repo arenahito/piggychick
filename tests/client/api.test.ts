@@ -6,6 +6,7 @@ import {
   fetchPlan,
   fetchRoots,
   removeRoot,
+  rootEventsUrl,
   saveConfig,
 } from "../../src/client/api";
 
@@ -64,6 +65,7 @@ describe("api helpers", () => {
 
     const config = await fetchConfig();
     expect(config.path).toContain("config");
+    expect(rootEventsUrl("root/with space")).toBe("/api/roots/root%2Fwith%20space/events");
   });
 
   test("adds and removes roots", async () => {

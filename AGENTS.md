@@ -105,6 +105,14 @@ PiggyChick is a local Bun-powered viewer for `.tasks` PRD folders. It serves the
 - Wrap localStorage access in try/catch and keep UI state toggles functional when storage is unavailable.
 - Prune stored per-root UI state to known root IDs during sync to avoid stale localStorage entries.
 
+## Live reload
+
+- Use root-level SSE for `.tasks` changes (`/api/roots/:rootId/events`), not per-PRD event endpoints.
+- Include `rootId` and `prdId` (`null` when ambiguous or multi-PRD) in change events so clients can decide targeted vs conservative reload behavior.
+- On the client, keep one EventSource per loaded root and reconcile subscriptions whenever the root list changes; always close stale subscriptions.
+- When consuming change events, coalesce async refresh work and re-check the active selection at execution time to avoid stale-event reloads after navigation changes.
+- If recursive `fs.watch` is unavailable, add child PRD-directory watchers and serialize watcher-resync updates to avoid race conditions.
+
 ## Config editor
 
 - Keep config text validation aligned with load/normalize behavior so saved schemas remain readable.
