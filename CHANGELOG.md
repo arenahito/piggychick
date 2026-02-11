@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/arenahito/piggychick/compare/piggychick-v0.2.0...piggychick-v0.2.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* **ci:** run tests on pull requests only and harden static path validation ([c26f3bd](https://github.com/arenahito/piggychick/commit/c26f3bdeeb3e21f61448b5bd6a73c56d761a3ab2))
+
 ## [0.2.0](https://github.com/arenahito/piggychick/compare/piggychick-v0.1.0...piggychick-v0.2.0) (2026-02-11)
 
 
