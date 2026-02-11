@@ -360,9 +360,6 @@ const setupGraphZoomControls = (
   graphViewport.addEventListener(
     "wheel",
     (event) => {
-      if (!event.metaKey && !event.ctrlKey) {
-        return;
-      }
       event.preventDefault();
       const direction = event.deltaY < 0 ? 1 : -1;
       const rect = graphViewport.getBoundingClientRect();
