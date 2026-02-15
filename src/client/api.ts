@@ -57,6 +57,7 @@ const fetchJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
 export const fetchRoots = () => fetchJson<RootsPayload>("/api/roots?prdSort=desc");
 
 export const rootEventsUrl = (rootId: string) => `/api/roots/${encodeURIComponent(rootId)}/events`;
+export const allEventsUrl = () => "/api/events";
 
 export const addRoot = (path: string) =>
   fetchJson<RootsPayload>("/api/roots", {

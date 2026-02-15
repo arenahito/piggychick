@@ -11,7 +11,7 @@ import {
   toConfigFile,
   writeConfigText,
 } from "../shared/config";
-import { createRootEventsResponse } from "./prd-events";
+import { createGlobalEventsResponse, createRootEventsResponse } from "./prd-events";
 import {
   listRoots,
   readMarkdownByRoot,
@@ -68,6 +68,17 @@ export const handleApiRequest = async (request: Request, configPath = resolveCon
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments[0] !== "api") {
     return jsonError(404, "not_found", "Not found");
+  }
+
+  if (segments[1] === "events" && segments.length === 2) {
+    if (request.method !== "GET") {
+      return jsonError(405, "method_not_allowed", "Method not allowed");
+    }
+    try {
+      return await createGlobalEventsResponse(request, configPath);
+    } catch (error) {
+      return handleTasksError(error);
+    }
   }
 
   if (segments[1] === "roots" && segments.length === 2) {

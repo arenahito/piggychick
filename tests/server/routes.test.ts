@@ -477,6 +477,38 @@ describe("handleApiRequest", () => {
     });
   });
 
+  test("streams global change events through a single endpoint", async () => {
+    await withTempRoot(async (root, configPath) => {
+      const tasksRoot = join(root, ".tasks");
+      await createPrd(tasksRoot, "alpha");
+      const listRequest = new Request("http://localhost/api/roots");
+      const listResponse = await handleApiRequest(listRequest, configPath);
+      const listPayload = await listResponse.json();
+      const rootId = listPayload.roots[0]?.id as string;
+      const controller = new AbortController();
+      const eventsRequest = new Request("http://localhost/api/events", {
+        method: "GET",
+        signal: controller.signal,
+      });
+      const eventsResponse = await handleApiRequest(eventsRequest, configPath);
+      expect(eventsResponse.status).toBe(200);
+      expect(eventsResponse.headers.get("Content-Type")).toContain("text/event-stream");
+      const reader = eventsResponse.body?.getReader();
+      if (!reader) throw new Error("Missing SSE stream body");
+      await waitFor(() => getRootEventsDebugSnapshot().subscribers > 0);
+
+      const emitted = emitSyntheticRootChangeForTests(rootId, "alpha/plan.json");
+      expect(emitted).toBe(true);
+      const event = await readChangedEvent(reader);
+      expect(event.kind).toBe("changed");
+      expect(event.rootId).toBe(rootId);
+      expect(event.prdId).toBe("alpha");
+
+      controller.abort();
+      await reader.cancel().catch(() => {});
+    });
+  });
+
   test("returns invalid_root for unknown root events endpoint", async () => {
     await withTempRoot(async (_root, configPath) => {
       const request = new Request("http://localhost/api/roots/missing/events");

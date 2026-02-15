@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   addRoot,
+  allEventsUrl,
   fetchConfig,
   fetchMarkdown,
   fetchPlan,
@@ -66,6 +67,7 @@ describe("api helpers", () => {
     const config = await fetchConfig();
     expect(config.path).toContain("config");
     expect(rootEventsUrl("root/with space")).toBe("/api/roots/root%2Fwith%20space/events");
+    expect(allEventsUrl()).toBe("/api/events");
   });
 
   test("adds and removes roots", async () => {

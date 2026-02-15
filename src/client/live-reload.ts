@@ -1,4 +1,4 @@
-import { rootEventsUrl } from "./api";
+import { allEventsUrl, rootEventsUrl } from "./api";
 
 export type RootChangedEvent = {
   kind: "changed";
@@ -34,15 +34,18 @@ export const shouldReloadActivePlanFromEvents = (
 
 const normalizeRootChangedEvent = (
   input: unknown,
-  fallbackRootId: string,
+  fallbackRootId?: string,
 ): RootChangedEvent | null => {
   if (!input || typeof input !== "object") return null;
   const candidate = input as { kind?: unknown; rootId?: unknown; prdId?: unknown; at?: unknown };
   if (candidate.kind !== "changed") return null;
+  const normalizedFallbackRootId =
+    typeof fallbackRootId === "string" && fallbackRootId.trim().length > 0 ? fallbackRootId : null;
   const rootId =
     typeof candidate.rootId === "string" && candidate.rootId.trim().length > 0
       ? candidate.rootId
-      : fallbackRootId;
+      : normalizedFallbackRootId;
+  if (!rootId) return null;
   const prdId =
     typeof candidate.prdId === "string" && candidate.prdId.trim().length > 0
       ? candidate.prdId
@@ -53,7 +56,7 @@ const normalizeRootChangedEvent = (
 
 export const parseRootChangedEvent = (
   raw: string,
-  fallbackRootId: string,
+  fallbackRootId?: string,
 ): RootChangedEvent | null => {
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -68,16 +71,25 @@ export const createRootEventsSubscription = (
   onChanged: (event: RootChangedEvent) => void,
   onError?: (error: Event) => void,
 ): RootEventsSubscription => {
-  const source = new EventSource(rootEventsUrl(rootId));
+  return createEventsSubscription(rootEventsUrl(rootId), onChanged, onError, rootId);
+};
 
-  const handleChanged = (event: Event) => {
-    const payload = parseRootChangedEvent((event as MessageEvent).data, rootId);
-    if (!payload) return;
-    onChanged(payload);
-  };
+export const createGlobalEventsSubscription = (
+  onChanged: (event: RootChangedEvent) => void,
+  onError?: (error: Event) => void,
+): RootEventsSubscription => {
+  return createEventsSubscription(allEventsUrl(), onChanged, onError);
+};
 
-  const handleMessage = (event: Event) => {
-    const payload = parseRootChangedEvent((event as MessageEvent).data, rootId);
+const createEventsSubscription = (
+  url: string,
+  onChanged: (event: RootChangedEvent) => void,
+  onError?: (error: Event) => void,
+  fallbackRootId?: string,
+): RootEventsSubscription => {
+  const source = new EventSource(url);
+  const handleEvent = (event: Event) => {
+    const payload = parseRootChangedEvent((event as MessageEvent).data, fallbackRootId);
     if (!payload) return;
     onChanged(payload);
   };
@@ -86,14 +98,14 @@ export const createRootEventsSubscription = (
     onError?.(event);
   };
 
-  source.addEventListener("changed", handleChanged as EventListener);
-  source.addEventListener("message", handleMessage as EventListener);
+  source.addEventListener("changed", handleEvent as EventListener);
+  source.addEventListener("message", handleEvent as EventListener);
   source.addEventListener("error", handleError as EventListener);
 
   return {
     close: () => {
-      source.removeEventListener("changed", handleChanged as EventListener);
-      source.removeEventListener("message", handleMessage as EventListener);
+      source.removeEventListener("changed", handleEvent as EventListener);
+      source.removeEventListener("message", handleEvent as EventListener);
       source.removeEventListener("error", handleError as EventListener);
       source.close();
     },
