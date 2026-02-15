@@ -399,7 +399,7 @@ export const createGlobalEventsResponse = async (
   let cleanup = () => {};
 
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    async start(controller) {
       const send = (chunk: string) => {
         controller.enqueue(encoder.encode(chunk));
       };
@@ -440,21 +440,12 @@ export const createGlobalEventsResponse = async (
         cleanup();
         return;
       }
-      send(": connected\n\n");
-      keepalive = setInterval(() => {
-        if (closed) return;
-        try {
-          send(": keepalive\n\n");
-        } catch {
-          cleanup();
-        }
-      }, keepaliveMs);
 
       const onAbort = () => cleanup();
       request.signal.addEventListener("abort", onAbort, { once: true });
       removeAbort = () => request.signal.removeEventListener("abort", onAbort);
 
-      void (async () => {
+      try {
         const rootIds = await listRootIds(configPath).catch(() => []);
         await attachSubscriberToRoots(
           rootIds,
@@ -463,9 +454,19 @@ export const createGlobalEventsResponse = async (
           subscriber,
           attachedRootIds,
         );
-      })().catch(() => {
+        if (closed) return;
+        send(": connected\n\n");
+        keepalive = setInterval(() => {
+          if (closed) return;
+          try {
+            send(": keepalive\n\n");
+          } catch {
+            cleanup();
+          }
+        }, keepaliveMs);
+      } catch {
         cleanup();
-      });
+      }
     },
     cancel() {
       cleanup();
