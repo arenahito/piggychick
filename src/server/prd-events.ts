@@ -4,6 +4,7 @@ import { basename, join, sep } from "node:path";
 import { resolveConfigPath } from "../shared/config";
 import {
   inferPrdIdFromWatchPath,
+  listRootIds,
   listRootWatchTargetsByRootId,
   type RootWatchTarget,
 } from "./tasks";
@@ -274,6 +275,34 @@ const getOrCreateRootEntry = async (rootId: string, configPath: string) => {
   return init;
 };
 
+const attachSubscriberToRoots = async (
+  rootIds: string[],
+  configPath: string,
+  isClosed: () => boolean,
+  subscriber: Subscriber,
+  attachedRootIds: Set<string>,
+) => {
+  for (const rootId of rootIds) {
+    if (isClosed()) {
+      return;
+    }
+    if (attachedRootIds.has(rootId)) {
+      continue;
+    }
+    let entry: RootEventEntry | null = null;
+    try {
+      entry = await getOrCreateRootEntry(rootId, configPath);
+    } catch {
+      entry = null;
+    }
+    if (!entry || isClosed()) {
+      continue;
+    }
+    entry.subscribers.add(subscriber);
+    attachedRootIds.add(rootId);
+  }
+};
+
 export const createRootEventsResponse = async (
   request: Request,
   rootId: string,
@@ -342,6 +371,99 @@ export const createRootEventsResponse = async (
       const onAbort = () => cleanup();
       request.signal.addEventListener("abort", onAbort, { once: true });
       removeAbort = () => request.signal.removeEventListener("abort", onAbort);
+    },
+    cancel() {
+      cleanup();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+};
+
+export const createGlobalEventsResponse = async (
+  request: Request,
+  configPath = resolveConfigPath(),
+) => {
+  const encoder = new TextEncoder();
+  let closed = false;
+  let keepalive: ReturnType<typeof setInterval> | null = null;
+  let removeAbort: (() => void) | null = null;
+  const attachedRootIds = new Set<string>();
+  let cleanup = () => {};
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const send = (chunk: string) => {
+        controller.enqueue(encoder.encode(chunk));
+      };
+      const subscriber: Subscriber = (event) => {
+        if (closed) return;
+        try {
+          send(formatChangedEvent(event));
+        } catch {
+          cleanup();
+        }
+      };
+      cleanup = () => {
+        if (closed) return;
+        closed = true;
+        if (keepalive) {
+          clearInterval(keepalive);
+          keepalive = null;
+        }
+        for (const rootId of attachedRootIds) {
+          const entry = rootEntries.get(rootId);
+          if (!entry) continue;
+          entry.subscribers.delete(subscriber);
+          closeEntryIfUnused(rootId);
+        }
+        attachedRootIds.clear();
+        if (removeAbort) {
+          removeAbort();
+          removeAbort = null;
+        }
+        try {
+          controller.close();
+        } catch {
+          return;
+        }
+      };
+
+      if (request.signal.aborted) {
+        cleanup();
+        return;
+      }
+      send(": connected\n\n");
+      keepalive = setInterval(() => {
+        if (closed) return;
+        try {
+          send(": keepalive\n\n");
+        } catch {
+          cleanup();
+        }
+      }, keepaliveMs);
+
+      const onAbort = () => cleanup();
+      request.signal.addEventListener("abort", onAbort, { once: true });
+      removeAbort = () => request.signal.removeEventListener("abort", onAbort);
+
+      void (async () => {
+        const rootIds = await listRootIds(configPath).catch(() => []);
+        await attachSubscriberToRoots(
+          rootIds,
+          configPath,
+          () => closed,
+          subscriber,
+          attachedRootIds,
+        );
+      })();
     },
     cancel() {
       cleanup();

@@ -17,7 +17,7 @@ import { renderSidebar, type Selection } from "./components/sidebar";
 import { renderPlanView, type MarkdownSection } from "./components/plan-view";
 import {
   createCoalescedAsyncRunner,
-  createRootEventsSubscription,
+  createGlobalEventsSubscription,
   reconcileRootSubscriptions,
   shouldReloadActivePlanFromEvents,
   type RootChangedEvent,
@@ -72,6 +72,7 @@ let configRequest = 0;
 let configHandle: ConfigEditorHandle | null = null;
 let rootEventSubscriptions = new Map<string, RootEventsSubscription>();
 let pendingRootChangeEvents: RootChangedEvent[] = [];
+const globalEventsSubscriptionKey = "__global__";
 
 const readBooleanRecord = (key: string) => {
   try {
@@ -791,9 +792,14 @@ const handleRootChangedEvent = (event: RootChangedEvent) => {
 };
 
 const reconcileRootEventStreams = () => {
-  const rootIds = state.roots.map((rootEntry) => rootEntry.id);
-  rootEventSubscriptions = reconcileRootSubscriptions(rootEventSubscriptions, rootIds, (rootId) =>
-    createRootEventsSubscription(rootId, handleRootChangedEvent),
+  if (state.roots.length === 0) {
+    closeAllRootEventStreams();
+    return;
+  }
+  rootEventSubscriptions = reconcileRootSubscriptions(
+    rootEventSubscriptions,
+    [globalEventsSubscriptionKey],
+    () => createGlobalEventsSubscription(handleRootChangedEvent),
   );
 };
 

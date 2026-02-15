@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   createCoalescedAsyncRunner,
+  createGlobalEventsSubscription,
   createRootEventsSubscription,
   isActivePlanAffected,
   parseRootChangedEvent,
@@ -85,6 +86,7 @@ describe("live reload helpers", () => {
       "fallback",
     );
     expect(emptyPrd?.prdId).toBeNull();
+    expect(parseRootChangedEvent(JSON.stringify({ kind: "changed", prdId: "alpha" }))).toBeNull();
   });
 
   test("detects whether active plan should reload", () => {
@@ -183,6 +185,56 @@ describe("live reload helpers", () => {
       }),
     );
     expect(received).toHaveLength(2);
+    expect(source.closed).toBe(true);
+  });
+
+  test("subscribes to all-root events with a single endpoint", () => {
+    globalThis.EventSource = FakeEventSource as unknown as typeof EventSource;
+    const received: RootChangedEvent[] = [];
+    const subscription = createGlobalEventsSubscription((event) => {
+      received.push(event);
+    });
+
+    const source = FakeEventSource.instances[0];
+    if (!source) throw new Error("Missing fake event source");
+    expect(source.url).toBe("/api/events");
+
+    source.emit(
+      "changed",
+      JSON.stringify({
+        kind: "changed",
+        rootId: "root-a",
+        prdId: "alpha",
+        at: "2026-02-11T01:10:00.000Z",
+      }),
+    );
+    source.emit(
+      "message",
+      JSON.stringify({
+        kind: "changed",
+        rootId: "root-b",
+        prdId: null,
+        at: "2026-02-11T01:10:01.000Z",
+      }),
+    );
+    source.emit("changed", JSON.stringify({ kind: "changed", prdId: "missing-root-id" }));
+
+    expect(received).toEqual([
+      {
+        kind: "changed",
+        rootId: "root-a",
+        prdId: "alpha",
+        at: "2026-02-11T01:10:00.000Z",
+      },
+      {
+        kind: "changed",
+        rootId: "root-b",
+        prdId: null,
+        at: "2026-02-11T01:10:01.000Z",
+      },
+    ]);
+
+    subscription.close();
     expect(source.closed).toBe(true);
   });
 

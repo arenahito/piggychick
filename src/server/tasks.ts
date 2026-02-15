@@ -685,6 +685,12 @@ export const listRoots = async (
   return { roots };
 };
 
+export const listRootIds = async (configPath = resolveConfigPath()) => {
+  const config = await loadConfigFile(configPath);
+  const normalized = await normalizeConfig(config, { path: configPath });
+  return buildRootEntries(normalized.roots).map((entry) => entry.id);
+};
+
 export const resolveRootById = async (rootId: string, configPath = resolveConfigPath()) => {
   const config = await loadConfigFile(configPath);
   const normalized = await normalizeConfig(config, { path: configPath });
