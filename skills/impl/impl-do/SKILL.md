@@ -169,20 +169,26 @@ After self-review passes, **perform external review using a subagent**:
 
 1. **Launch or resume review subagent**
    - If no review subagent exists yet, launch one and store the agent ID in session memory
-   - If a review subagent already exists (from previous tasks), resume it using the stored agent ID
-   - The same subagent is reused across ALL tasks in the workflow
+   - If a review subagent already exists, resume it using the stored agent ID
+   - If the subagent has been terminated for any reason, launch a new one and store the new agent ID
 
-2. **Process review findings**
+2. **Provide task context**
+   - Pass the current task ID (UUID) and task prefix
+   - Instruct the subagent to read the corresponding section in `plan.md` for acceptance criteria, target files, and design intent
+   - Provide the list of files changed in this task
+   - Instruct the subagent to read the relevant codebase (changed files and their surrounding context)
+
+3. **Process review findings**
    - Identify all issues and suggestions from subagent response
 
-3. **If issues exist**:
+4. **If issues exist**:
    - Fix all identified issues
    - Re-run verification
    - Perform self-review again
    - **Resume the same subagent** using the stored agent ID
    - Repeat until external review passes
 
-4. **If no issues**:
+5. **If no issues**:
    - External review passed
    - Mark task as complete and proceed to next task
    - Do NOT terminate the subagent (it will be reused for the next task)
@@ -195,27 +201,45 @@ After external review passes, record learnings from this task in `.tasks/{YYYY-M
 2. **Title**: Use `# {Plan Title} Implementation` as the document title (e.g., `# User Authentication Implementation`)
 3. **Write in English** - memory.md is a structured data source for generating other artifacts
 4. **Add a new section** for this task using the task prefix as heading (e.g., `## B1: Create User Model`)
-5. **Record learnings** that emerged during implementation:
-   - Unexpected challenges and how they were resolved
-   - Useful techniques or patterns discovered
-   - Gotchas, edge cases, or non-obvious behaviors
-   - Performance considerations or optimizations
-   - Integration points that required special attention
-   - Any deviations from the original plan and why
+5. **Use the entry template** for each learning (see below)
 
-**What to Record:**
+##### Entry Template
 
-- Technical insights specific to this codebase
-- Workarounds for library/framework quirks
-- Configuration or environment discoveries
-- Code patterns that worked well (or didn't)
-- Testing strategies that proved effective
+Each learning MUST use the following structure:
 
-**What NOT to Record:**
+```markdown
+### <Category>: <Title>
 
-- Generic programming knowledge
-- Information already documented elsewhere
-- Task-specific details with no reuse value
+**Context**: What situation triggered this (1-2 sentences)
+
+**Problem**: What specifically went wrong or was unexpected
+
+**Resolution**: How it was resolved (MUST include concrete examples: code snippets, config values, commands, error messages, etc.)
+
+**Scope**: `codebase` | `task-specific`
+```
+
+- **`codebase`**: Applies to any development in this codebase → candidate for agent instruction files (AGENTS.md / CLAUDE.md)
+- **`task-specific`**: Specific to this implementation → stays only in memory.md, valuable for future maintenance and debugging of this feature
+
+##### What to Record
+
+Both codebase-wide and task-specific learnings:
+
+- Technical insights specific to this codebase (`codebase`)
+- Workarounds for library/framework quirks (`codebase`)
+- Configuration or environment discoveries (`codebase`)
+- Code patterns that worked well or didn't (`codebase`)
+- Testing strategies that proved effective (`codebase`)
+- Deviations from the original plan and why (`task-specific`)
+- Implementation decisions and their rationale (`task-specific`)
+- Integration details specific to this feature (`task-specific`)
+- Edge cases encountered and how they were handled (`task-specific`)
+
+##### What NOT to Record
+
+- Generic programming knowledge (not specific to this codebase)
+- Information already documented elsewhere (README, docs, etc.)
 
 See [memory.md](references/memory.md) for example format.
 
@@ -250,49 +274,70 @@ Before reporting completion to user:
 1. Verify all tasks in `plan.json` have `status = "done"`
 2. Verify all todos are marked as completed
 3. If any task is incomplete, return to Phase 2 and complete remaining tasks
-4. **Terminate review subagent**: If a review subagent was used and a terminate function is available, terminate it by specifying the stored agent ID. If termination is not supported, do nothing.
-5. Update AGENTS.md with learnings (see below)
-6. Git commit the AGENTS.md updates (use commit message: `docs: update AGENTS.md with learnings from {slug}`)
-7. Provide summary of completed work
+4. Update agent instruction files with learnings (see below)
+5. **External review of agent instruction updates**: Resume the review subagent and request review of the updated agent instruction files (see below)
+6. Git commit the updates (use commit message: `docs: update agent instructions with learnings from {slug}`)
+7. **Terminate review subagent**: If a review subagent was used and a terminate function is available, terminate it by specifying the stored agent ID. If termination is not supported, do nothing.
+8. Provide summary of completed work
 
-#### Update AGENTS.md
+#### Update Agent Instruction Files
 
-Integrate universally applicable learnings from `memory.md` into AGENTS.md:
+Integrate universally applicable learnings from `memory.md` into agent instruction files (`AGENTS.md` and/or `CLAUDE.md`).
 
-1. **Find all AGENTS.md files** in the repository:
-   - AGENTS.md can exist at repository root AND in subdirectories
-   - Each AGENTS.md applies to its directory and descendants
-   - Example locations: `./AGENTS.md`, `./backend/AGENTS.md`, `./frontend/AGENTS.md`
+##### Step 1: Determine Update Targets
 
-2. **Read and understand existing AGENTS.md structure**:
-   - Read the entire AGENTS.md file before making changes
-   - Identify existing sections and their purposes
-   - Understand the organizational pattern used in the file
+Scan the repository for `AGENTS.md` and `CLAUDE.md` files (they can exist at root AND in subdirectories). Then determine which files to update:
 
-3. **Match learnings to appropriate AGENTS.md**:
-   - Review each learning in `memory.md`
-   - Determine which directory scope the learning applies to
-   - Update the AGENTS.md file closest to the relevant code
-   - Example: Backend database learnings → `./backend/AGENTS.md` (if exists) or `./AGENTS.md`
+| Condition | Update target |
+|---|---|
+| Only `AGENTS.md` exists | `AGENTS.md` |
+| Only `CLAUDE.md` exists | `CLAUDE.md` |
+| Both exist independently | Both `AGENTS.md` and `CLAUDE.md` |
+| One references the other (e.g., contains `@CLAUDE.md` or `@AGENTS.md`) | Only the file with actual content (skip the reference-only file) |
 
-4. **If no AGENTS.md exists anywhere**, create one at repository root
+**Reference detection**: A file is considered a reference-only file if its primary content is a reference to the other file (e.g., `See @CLAUDE.md` or `@AGENTS.md`). Such files should NOT be updated — only the file with substantive content is the update target.
 
-5. **Filter learnings** - Only include information that:
-   - Applies to ANY development in the target scope (not just this PRD)
-   - Represents codebase conventions or patterns
-   - Documents non-obvious behaviors that all developers should know
-   - Describes integration patterns with external services
-   - Captures environment or configuration requirements
+**If neither file exists anywhere**, create `AGENTS.md` at repository root.
 
-6. **Integrate into existing structure** (DO NOT create a "Learnings" section):
-   - Find the most appropriate existing section for each learning
-   - If a section for that topic exists, add to it or update existing content
-   - If no suitable section exists, create a descriptive section name that matches the topic (e.g., "Database Patterns", "API Conventions", "Testing Guidelines")
-   - Merge related information rather than duplicating
-   - Keep entries concise and actionable
-   - Focus on "what every developer should know"
+##### Step 2: Find All Target Files
 
-**Include in AGENTS.md:**
+- Target files can exist at repository root AND in subdirectories
+- Each file applies to its directory and descendants
+- Example locations: `./AGENTS.md`, `./backend/CLAUDE.md`, `./frontend/AGENTS.md`
+
+##### Step 3: Read and Understand Existing Structure
+
+- Read the entire target file before making changes
+- Identify existing sections and their purposes
+- Understand the organizational pattern used in the file
+
+##### Step 4: Review and Filter Learnings
+
+Review ALL entries in `memory.md` and determine which belong in agent instruction files:
+
+- `Scope` is a **hint, not a definitive filter** — the agent that wrote it may have misclassified entries
+- `Scope: codebase` entries are strong candidates, but still verify they are truly universal
+- `Scope: task-specific` entries should also be reviewed — some may contain patterns, conventions, or gotchas that apply beyond the current task
+- Apply the include/exclude criteria in Step 6 as the final decision basis
+
+##### Step 5: Match Learnings to Appropriate File
+
+- Review each selected learning
+- Determine which directory scope the learning applies to
+- Update the target file closest to the relevant code
+- Example: Backend database learnings → `./backend/AGENTS.md` (if exists) or `./AGENTS.md`
+
+##### Step 6: Integrate into Existing Structure
+
+DO NOT create a "Learnings" section:
+- Find the most appropriate existing section for each learning
+- If a section for that topic exists, add to it or update existing content
+- If no suitable section exists, create a descriptive section name that matches the topic (e.g., "Database Patterns", "API Conventions", "Testing Guidelines")
+- Merge related information rather than duplicating
+- Keep entries concise and actionable
+- Focus on "what every developer should know"
+
+**Include:**
 
 - Codebase-specific conventions discovered
 - Non-obvious configuration requirements
@@ -300,13 +345,28 @@ Integrate universally applicable learnings from `memory.md` into AGENTS.md:
 - Common pitfalls and how to avoid them
 - Testing patterns specific to this codebase
 
-**Do NOT include in AGENTS.md:**
+**Do NOT include:**
 
-- Task-specific implementation details
+- Implementation details that only matter for this specific task and have no broader applicability
 - Temporary workarounds
 - Information already documented in README or other docs
 - Generic best practices (not codebase-specific)
 - A generic "Learnings" or "Learning" section (integrate into topic-specific sections instead)
+
+#### External Review of Agent Instruction Updates
+
+After updating agent instruction files, request external review using the same review subagent:
+
+1. **Resume or re-launch the review subagent** — if the stored agent ID is still valid, resume it; otherwise launch a new one and store the new agent ID
+2. **Provide the updated files** for review — include the diff or full content of each updated agent instruction file
+3. **Review criteria** for agent instruction files:
+   - Are the learnings correctly scoped (codebase-wide, not task-specific)?
+   - Are entries placed in appropriate sections?
+   - Are entries concise, actionable, and useful for other developers?
+   - Is there any duplication with existing content?
+   - Does the content read naturally within the existing document structure?
+4. **If issues exist**: Fix all identified issues, then resume the subagent for re-review
+5. **If no issues**: Proceed to git commit
 
 ## Important Rules
 
@@ -315,10 +375,12 @@ Integrate universally applicable learnings from `memory.md` into AGENTS.md:
 - **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit → Mark complete
 - **Run verification after implementation** - Execute lint, tests, and build checks; fix all issues before self-review
 - **Resolve ALL self-review issues before external review** - External review is high-cost; do not waste it on issues you can find yourself
-- **Use single subagent for external review** - Reuse the same review subagent across ALL tasks in the workflow
+- **Use single subagent for external review** - Launch at first external review, reuse across ALL tasks in Phase 2 and for agent instruction file review in Phase 3
+- **Re-launch subagent if terminated** - If the subagent has been terminated unexpectedly, launch a new one, store the new agent ID, and have it read plan.md and relevant codebase before proceeding
 - **Keep subagent ID in session memory** - Store the agent ID to resume the same subagent for all external reviews throughout the workflow
+- **Terminate subagent only after Phase 3 review** - Do NOT terminate the review subagent until agent instruction file review is complete
 - **Record learnings in memory.md** - After each task, document discoveries, gotchas, and patterns in memory.md
-- **Update appropriate AGENTS.md** - AGENTS.md can exist in root and subdirectories; match learnings to the closest relevant file
-- **Create AGENTS.md if none exists** - If no AGENTS.md exists in the repository, create one at root with universal learnings
+- **Update appropriate agent instruction files** - AGENTS.md / CLAUDE.md can exist in root and subdirectories; determine update targets per Step 1 rules and match learnings to the closest relevant file
+- **Create AGENTS.md if neither exists** - If no AGENTS.md or CLAUDE.md exists in the repository, create AGENTS.md at root with universal learnings
 - Fix review findings autonomously based on fix complexity - do NOT ask user permission for simple/moderate fixes
 - Only consult user when fixes require significant architectural changes or widespread modifications
