@@ -88,13 +88,7 @@ const createEventsSubscription = (
   fallbackRootId?: string,
 ): RootEventsSubscription => {
   const source = new EventSource(url);
-  const handleChanged = (event: Event) => {
-    const payload = parseRootChangedEvent((event as MessageEvent).data, fallbackRootId);
-    if (!payload) return;
-    onChanged(payload);
-  };
-
-  const handleMessage = (event: Event) => {
+  const handleEvent = (event: Event) => {
     const payload = parseRootChangedEvent((event as MessageEvent).data, fallbackRootId);
     if (!payload) return;
     onChanged(payload);
@@ -104,14 +98,14 @@ const createEventsSubscription = (
     onError?.(event);
   };
 
-  source.addEventListener("changed", handleChanged as EventListener);
-  source.addEventListener("message", handleMessage as EventListener);
+  source.addEventListener("changed", handleEvent as EventListener);
+  source.addEventListener("message", handleEvent as EventListener);
   source.addEventListener("error", handleError as EventListener);
 
   return {
     close: () => {
-      source.removeEventListener("changed", handleChanged as EventListener);
-      source.removeEventListener("message", handleMessage as EventListener);
+      source.removeEventListener("changed", handleEvent as EventListener);
+      source.removeEventListener("message", handleEvent as EventListener);
       source.removeEventListener("error", handleError as EventListener);
       source.close();
     },

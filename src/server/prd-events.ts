@@ -463,7 +463,9 @@ export const createGlobalEventsResponse = async (
           subscriber,
           attachedRootIds,
         );
-      })();
+      })().catch(() => {
+        cleanup();
+      });
     },
     cancel() {
       cleanup();

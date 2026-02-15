@@ -217,6 +217,13 @@ const findFirstSelection = (): Selection | null => {
   return null;
 };
 
+const createGlobalEventsSubscriptionKey = (roots: RootSummary[]) => {
+  const rootIds = [...new Set(roots.map((rootEntry) => rootEntry.id))].sort((left, right) =>
+    left.localeCompare(right, "en", { sensitivity: "base", numeric: true }),
+  );
+  return `${globalEventsSubscriptionKey}:${JSON.stringify(rootIds)}`;
+};
+
 const ensureSelection = (
   route: HashRoute | null,
 ): { didUpdateHash: boolean; kind: "config" | "plan" } => {
@@ -796,9 +803,10 @@ const reconcileRootEventStreams = () => {
     closeAllRootEventStreams();
     return;
   }
+  const subscriptionKey = createGlobalEventsSubscriptionKey(state.roots);
   rootEventSubscriptions = reconcileRootSubscriptions(
     rootEventSubscriptions,
-    [globalEventsSubscriptionKey],
+    [subscriptionKey],
     () => createGlobalEventsSubscription(handleRootChangedEvent),
   );
 };
