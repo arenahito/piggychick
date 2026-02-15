@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/arenahito/piggychick/compare/piggychick-v0.2.1...piggychick-v0.2.2) (2026-02-15)
+
+
+### Bug Fixes
+
+* **live-reload:** switch to single global SSE stream ([#3](https://github.com/arenahito/piggychick/issues/3)) ([150c09b](https://github.com/arenahito/piggychick/commit/150c09b534f84cbb847367af2d2e9a6ef5d6c8cc))
+
 ## [0.2.1](https://github.com/arenahito/piggychick/compare/piggychick-v0.2.0...piggychick-v0.2.1) (2026-02-11)
 
 
