@@ -167,6 +167,8 @@ After self-review passes, **perform external review using a subagent**:
 
 **IMPORTANT**: External review is high-cost. Resolve all self-review issues BEFORE requesting external review.
 
+**NOTE**: External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementer. The reviewer must NOT re-run these checks.
+
 1. **Launch or resume review subagent**
    - If no review subagent exists yet, launch one and store the agent ID in session memory
    - If a review subagent already exists, resume it using the stored agent ID
@@ -174,21 +176,39 @@ After self-review passes, **perform external review using a subagent**:
 
 2. **Provide task context**
    - Pass the current task ID (UUID) and task prefix
-   - Instruct the subagent to read the corresponding section in `plan.md` for acceptance criteria, target files, and design intent
+   - Instruct the subagent to read the corresponding section in `plan.md` for design intent, requirements, and target files
    - Provide the list of files changed in this task
    - Instruct the subagent to read the relevant codebase (changed files and their surrounding context)
 
-3. **Process review findings**
+3. **Review scope**
+
+   The reviewer focuses on issues that the implementer is likely to miss due to their own bias:
+
+   **In scope:**
+   - Alignment with design intent described in `plan.md`
+   - Code readability and maintainability (naming, structure, separation of concerns)
+   - Edge cases and error handling the implementer may have overlooked
+   - Security and performance concerns (structural issues, not micro-optimizations)
+   - Consistency with existing codebase conventions and patterns
+
+   **Out of scope** (already verified by the implementer):
+   - Lint / static analysis results
+   - Type checking
+   - Test execution and results
+   - Build success
+   - Acceptance criteria verification
+
+4. **Process review findings**
    - Identify all issues and suggestions from subagent response
 
-4. **If issues exist**:
+5. **If issues exist**:
    - Fix all identified issues
    - Re-run verification
    - Perform self-review again
    - **Resume the same subagent** using the stored agent ID
    - Repeat until external review passes
 
-5. **If no issues**:
+6. **If no issues**:
    - External review passed
    - Mark task as complete and proceed to next task
    - Do NOT terminate the subagent (it will be reused for the next task)
@@ -382,5 +402,6 @@ After updating agent instruction files, request external review using the same r
 - **Record learnings in memory.md** - After each task, document discoveries, gotchas, and patterns in memory.md
 - **Update appropriate agent instruction files** - AGENTS.md / CLAUDE.md can exist in root and subdirectories; determine update targets per Step 1 rules and match learnings to the closest relevant file
 - **Create AGENTS.md if neither exists** - If no AGENTS.md or CLAUDE.md exists in the repository, create AGENTS.md at root with universal learnings
+- **Save temporary files under the plan directory** - Any temporary files created during investigation or implementation (e.g., debug logs, analysis outputs, scratch notes) must be saved under `.tasks/{YYYY-MM-DD}-{nn}-{slug}/tmp/`. Do NOT save them in the project root or other locations. Clean up when no longer needed.
 - Fix review findings autonomously based on fix complexity - do NOT ask user permission for simple/moderate fixes
 - Only consult user when fixes require significant architectural changes or widespread modifications

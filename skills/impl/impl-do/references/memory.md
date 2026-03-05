@@ -9,6 +9,7 @@
 **Problem**: The existing codebase uses UUIDs for all entities. Auto-increment IDs would break foreign key conventions and cause inconsistency with existing queries that expect UUID format.
 
 **Resolution**: Adjusted the schema to use UUID primary keys and updated the migration accordingly.
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,6 +26,7 @@ CREATE TABLE users (
 **Problem**: Existing queries across the codebase assume soft delete. A hard delete broke cascading relationships and audit trails.
 
 **Resolution**: All models use soft delete with `deleted_at` timestamp. All queries need `WHERE deleted_at IS NULL` or use the `withNotDeleted()` scope. This wasn't documented anywhere.
+
 ```typescript
 // Correct query pattern
 const user = await User.query().withNotDeleted().findById(id);
@@ -40,6 +42,7 @@ const user = await User.query().withNotDeleted().findById(id);
 **Problem**: Database stores timestamps in UTC, but the ORM returns them in local timezone. Assertion failures occurred because `2024-01-01T00:00:00Z` was returned as `2024-01-01T09:00:00+09:00`.
 
 **Resolution**: Explicitly call `->utc()` when comparing timestamps.
+
 ```typescript
 expect(user.createdAt.utc().toISO()).toBe(expected.utc().toISO());
 ```
@@ -67,6 +70,7 @@ expect(user.createdAt.utc().toISO()).toBe(expected.utc().toISO());
 **Problem**: Initial implementation used ad-hoc error formats. API integration tests from other teams failed because they expected the standard error format.
 
 **Resolution**: All API errors must follow the established format:
+
 ```json
 {
   "error": {
@@ -86,6 +90,7 @@ Use the `ApiError` class from `@shared/errors` to ensure consistency.
 **Problem**: JWT validation was causing 50ms overhead per request. Under load, this accumulated to unacceptable response times.
 
 **Resolution**: Caching the decoded token in request context reduced validation to <1ms for subsequent checks within the same request.
+
 ```typescript
 req.context.decodedToken ??= await verifyJwt(req.headers.authorization);
 ```
@@ -103,6 +108,7 @@ req.context.decodedToken ??= await verifyJwt(req.headers.authorization);
 **Problem**: Initially wrote custom validation logic, which diverged from backend validation rules and caused inconsistent error messages.
 
 **Resolution**: The project uses `react-hook-form` with `zod` schemas. Validation schemas are shared between frontend and backend via the `@shared/schemas` package.
+
 ```typescript
 import { loginSchema } from '@shared/schemas';
 const form = useForm({ resolver: zodResolver(loginSchema) });
@@ -117,6 +123,7 @@ const form = useForm({ resolver: zodResolver(loginSchema) });
 **Problem**: Login form reads localStorage on initial render for the "remember me" state. This caused hydration mismatch errors because the server render had no access to localStorage.
 
 **Resolution**: Wrap localStorage access in `useEffect` and use `suppressHydrationWarning` on the checkbox.
+
 ```tsx
 const [rememberMe, setRememberMe] = useState(false);
 useEffect(() => {
@@ -134,6 +141,7 @@ useEffect(() => {
 **Problem**: Code review flagged inconsistent spacing — used `p-3` and `p-5` instead of design system tokens, which made the UI subtly inconsistent with other pages.
 
 **Resolution**: The design system has predefined spacing tokens (`space-xs`, `space-sm`, etc.) in `tailwind.config.js`. Must use these instead of arbitrary values.
+
 ```tsx
 // Correct
 <div className="p-space-sm gap-space-xs">

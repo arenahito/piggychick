@@ -19,7 +19,9 @@ Create implementation plans for software development tasks with sufficient detai
 
 ### 1. Gather Requirements
 
-Collect necessary information before planning:
+Collect necessary information before planning.
+
+**All investigation MUST be completed in this step.** Do NOT defer investigation to implementation tasks. The plan should contain only implementable tasks — never "investigate", "research", or "explore" tasks. Any unknowns that block planning must be resolved here before proceeding.
 
 - Clarify the goal and scope of the task
 - **For existing codebases only**: Investigate existing code to identify affected files and understand existing patterns (skip for new projects with no existing code)
@@ -38,6 +40,13 @@ Topics that may require clarification:
 - Technology choices not explicitly stated
 - Scope boundaries that are unclear
 - Priority or ordering preferences
+
+### Temporary Files
+
+All temporary files created during investigation and planning (e.g., research notes, API response samples, code analysis outputs, exploratory scripts) MUST be saved under `.tasks/tmp/`. Do NOT save them in the project root or other locations.
+
+- Create `.tasks/tmp/` if it does not exist
+- Clean up `.tasks/tmp/` after the plan directory is created: move relevant files into the plan directory, delete the rest
 
 ### 2. Analyze and Decompose
 
@@ -298,6 +307,28 @@ Both self-review and external review evaluate the plan against these criteria:
    - External review passed
    - Plan is ready for implementation
 
+### 7. Present Plan Summary
+
+After the plan passes review, present a concise summary to the user **in the user's language**.
+
+The summary should enable the user to grasp the entire plan without reading `plan.md`. Include:
+
+- **Goal**: What the plan accomplishes (1-2 sentences)
+- **Scope**: What is included and excluded
+- **Design overview**: Key architectural decisions and technical approach
+- **Task list**: Each task with its ID, title, and a description covering:
+  - Why this task is needed (purpose and motivation)
+  - What it concretely does (key deliverables or changes)
+  - The user should be able to judge whether each task is necessary from this description alone
+- **Risks or open items**: Any notable risks identified during planning
+
+**Guidelines**:
+- Do NOT reproduce the full plan — summarize at a level where the user can make a go/no-go decision
+- Use the user's language, not the plan document's language
+- Keep technical accuracy — do not oversimplify to the point of losing important nuance
+- Omit execution-phase details (dependency order, implementation steps) — focus on *what* and *why*, not *how* or *when*
+- Do NOT use Mermaid diagrams — they cannot be rendered in chat. Use ASCII art instead when a visual representation aids understanding
+
 ## Guidelines
 
 ### Diagrams
@@ -356,6 +387,7 @@ Include enough detail that another engineer can implement without asking questio
 
 ### What to Avoid
 
+- **Do not create investigation or research tasks** — all investigation (code analysis, API exploration, pattern discovery) must be completed during the planning phase. The resulting plan should contain only implementable tasks with concrete deliverables.
 - Do not include design decisions that need discussion (flag these as blockers)
 - Do not include tasks outside the stated scope
 - Do not create circular dependencies between tasks
