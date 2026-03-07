@@ -1,12 +1,8 @@
 ---
 name: impl-plan
 description: |
-  REQUIRED skill for planning and designing coding tasks before implementation. Use this skill when:
-  (1) User asks to "plan", "design", "create a plan", or "think before coding"
-  (2) Complex tasks requiring multiple files or steps
-  (3) Tasks involving both backend and frontend changes
-  (4) Breaking down ambiguous requirements into concrete tasks
-  This skill ensures plans are properly documented, saved as markdown, reviewed by subagent, and registered as todos before any code is written. Do NOT skip this skill for non-trivial tasks.
+  Skill for planning and designing coding tasks before implementation. Use this skill ONLY when the user explicitly asks to "plan", "design", "create a plan", or "think before coding".
+  Do NOT use this skill when the user asks to "implement", "build", "create", "fix", or any other action-oriented instruction — even if the task is complex or spans multiple files. The decision to plan before implementing belongs to the user, not the agent.
 metadata:
   short-description: Create and review implementation plans before coding
 ---
