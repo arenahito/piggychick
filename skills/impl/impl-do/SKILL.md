@@ -1,34 +1,37 @@
 ---
 name: impl-do
 description: |
-  Workflow for executing implementation tasks.
+  Workflow for executing implementation tasks using an orchestrator pattern.
   Use this skill when you need to:
   (1) Execute a prepared implementation plan
-  (2) Implement tasks sequentially based on dependency resolution
-  (3) For each task: implement → verify → self-review → external review
-  This skill enforces: (a) dependency-based task execution, (b) per-task review cycle.
+  (2) Orchestrate tasks by delegating implementation and review to subagents
+  (3) For each task: implement → verify → self-review → external review (all via subagents)
+  This skill enforces: (a) dependency-based task execution, (b) per-task subagent isolation, (c) per-task review cycle.
 metadata:
-  short-description: Execute implementation plans with per-task review cycle
+  short-description: Execute implementation plans with orchestrator pattern and per-task subagent isolation
 ---
 
 # Implementation Workflow
 
 ## Core Principles
 
-1. **Execute tasks by dependency** - Pick any task with no unresolved dependencies and execute it
-2. **Complete each task fully** - Implementation → Verification → Self-review → External review as one unit per task
-3. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
+1. **Orchestrate, don't implement** - The orchestrator delegates implementation and review to subagents, keeping its own context lean
+2. **Execute tasks by dependency** - Pick any task with no unresolved dependencies and execute it
+3. **Isolate subagents per task** - Each task gets fresh implementation and review subagents to maintain quality at scale
+4. **Complete each task fully** - Implementation → Verification → Self-review → External review as one unit per task
+5. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
 
 ## Reference
 
 This workflow uses files from the `.tasks/{YYYY-MM-DD}-{nn}-{slug}/` directory created by impl-plan:
 
 - **plan.md** - Human-readable plan with task descriptions, file paths, and acceptance criteria
-- **plan.json** - Machine-readable task list for tracking progress
+- **plan.json** - Machine-readable task list and workflow options for tracking progress
 - **memory.md** - Learnings recorded during task execution (created by this workflow)
+- **mail/** - File-based communication between subagents (created by this workflow)
 
 See [plan-json-schema.md](../impl-plan/references/plan-json-schema.md) for:
-- Schema definition of `plan.json`
+- Schema definition of `plan.json` (including `commitPolicy` and `updateAgentDocs` options)
 - yq commands to query next executable task and mark tasks complete
 
 ## Documentation Language
@@ -74,7 +77,7 @@ Todo 3: id="F1", content="F1: Build login form"
 
 ### Phase 2: Task Execution
 
-Execute tasks based on dependency resolution. For each task, perform implementation, self-review, and external review as a single unit.
+The orchestrator delegates implementation and review to subagents, coordinating the workflow while keeping its own context lean.
 
 **Task Execution Loop**:
 
@@ -83,20 +86,42 @@ Execute tasks based on dependency resolution. For each task, perform implementat
    - All tasks in `dependsOn` have `status = "done"` (or `dependsOn` is empty)
 2. **Mark task as in progress**: Set `status: "in_progress"` in `plan.json`
 3. **Read task details**: Get task details from `plan.md` (description, file paths, acceptance criteria, etc.)
-4. **Implement**: Execute the task implementation
-5. **Verify**: Run verification checks (see Verification below)
-6. **Self-review**: Review and fix issues (see Self-Review below)
-7. **External review**: Request external review via subagent (see External Review below)
+4. **Delegate implementation**: Launch an implementation subagent (see Implementation below)
+5. **Request external review**: Launch a review subagent (see External Review below)
+6. **Fix loop**: If review finds issues, coordinate fixes between subagents (see External Review below)
+7. **Record learnings**: Resume the implementation subagent to write memory.md (see Memory Recording below)
 8. **Complete task**:
    - Mark task as complete in `plan.json` (set `status: "done"`)
-   - Record learnings in memory.md (see Memory Recording below)
-   - Git commit all changes (see Git Commit below)
+   - If `commitPolicy = "per-task"`: Git commit all changes (see Git Commit below)
+   - If `commitPolicy = "end"` or `"none"`: Skip commit
    - Update todo status
-8. **Repeat**: Go to step 1 until all tasks are complete
+9. **Repeat**: Go to step 1 until all tasks are complete
+
+#### Implementation
+
+For each task, launch a new implementation subagent with clean context.
+
+**Context to provide:**
+
+- Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
+- Current task prefix and ID
+- Instruct the subagent to read:
+  - The corresponding section in `plan.md` for design intent, requirements, file paths, and acceptance criteria
+  - `memory.md` (if exists) for learnings from previous tasks
+  - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
+
+**Instruct the subagent to perform:**
+
+1. Implement the task according to `plan.md`
+2. Run verification checks (see Verification below)
+3. Perform self-review (see Self-Review below)
+4. Return: list of changed files, a brief implementation summary, and a proposed commit message
+
+**Store the agent ID** in session memory for potential fix loops later in the review phase.
 
 #### Verification
 
-After implementing each task, run verification checks:
+The implementation subagent runs the following verification checks after implementation:
 
 1. **Static Analysis**
    - Run linter (eslint, ruff, golangci-lint, etc.)
@@ -125,7 +150,7 @@ After implementing each task, run verification checks:
 
 #### Self-Review
 
-After verification passes, **perform self-review**:
+After verification passes, the implementation subagent **performs self-review**:
 
 1. Review implemented code for:
    - Correctness and adherence to requirements
@@ -154,31 +179,49 @@ After verification passes, **perform self-review**:
 - Test coverage additions
 - Refactoring within existing patterns
 
-**Require User Confirmation:**
+**Report to orchestrator (do NOT fix autonomously):**
 
 - Changes requiring significant architectural restructuring
 - Modifications spanning many files or modules
 - Changes that fundamentally alter the implementation approach
 - Trade-offs between conflicting requirements
 
+When the implementation subagent reports these issues, the orchestrator consults the user and resumes the subagent with the decision.
+
 #### External Review
 
-After self-review passes, **perform external review using a subagent**:
+After the implementation subagent completes, the orchestrator launches a review subagent for external review. Subagents communicate through files in the `mail/` directory to prevent information loss.
 
-**IMPORTANT**: External review is high-cost. Resolve all self-review issues BEFORE requesting external review.
+**IMPORTANT**: The implementation subagent must resolve all self-review issues BEFORE the orchestrator requests external review.
 
-**NOTE**: External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementer. The reviewer must NOT re-run these checks.
+**NOTE**: External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementation subagent. The reviewer must NOT re-run these checks.
 
-1. **Launch or resume review subagent**
-   - If no review subagent exists yet, launch one and store the agent ID in session memory
-   - If a review subagent already exists, resume it using the stored agent ID
-   - If the subagent has been terminated for any reason, launch a new one and store the new agent ID
+##### File Naming Convention
 
-2. **Provide task context**
+Files in `mail/` follow the pattern `{task-prefix}-{topic}-{nn}.md` with zero-padded 2-digit round numbers:
+
+```
+mail/B1-review-01.md              ← reviewer: findings (round 1)
+mail/B1-review-response-01.md     ← coder: fixes applied + explanations
+mail/B1-review-02.md              ← reviewer: re-review (round 2)
+mail/B1-review-response-02.md     ← coder: fixes applied + explanations
+mail/B1-review-03.md              ← reviewer: approved (no issues)
+```
+
+- The review file for the final round contains the approval (no response file needed)
+- Response files must address each finding: what was fixed, or why a finding was intentionally not addressed
+
+##### Review Flow
+
+1. **Launch a new review subagent** for this task and store the agent ID in session memory
+
+2. **Provide task context and role boundaries**
    - Pass the current task ID (UUID) and task prefix
    - Instruct the subagent to read the corresponding section in `plan.md` for design intent, requirements, and target files
-   - Provide the list of files changed in this task
+   - Provide the list of files changed in this task (received from the implementation subagent)
    - Instruct the subagent to read the relevant codebase (changed files and their surrounding context)
+   - Instruct the subagent to write review findings to `mail/{task-prefix}-review-{nn}.md`
+   - **Explicitly instruct**: "Your ONLY role is code review. Write your findings to the review file, then stop and return to me. Do NOT fix code, do NOT implement anything, do NOT proceed to other tasks."
 
 3. **Review scope**
 
@@ -191,31 +234,31 @@ After self-review passes, **perform external review using a subagent**:
    - Security and performance concerns (structural issues, not micro-optimizations)
    - Consistency with existing codebase conventions and patterns
 
-   **Out of scope** (already verified by the implementer):
+   **Out of scope** (already verified by the implementation subagent):
    - Lint / static analysis results
    - Type checking
    - Test execution and results
    - Build success
    - Acceptance criteria verification
 
-4. **Process review findings**
-   - Identify all issues and suggestions from subagent response
+4. **If issues exist**:
+   - **Resume the implementation subagent**: instruct it to read the review file (`mail/{task-prefix}-review-{nn}.md`), fix issues, re-run verification, perform self-review, and write a response file (`mail/{task-prefix}-review-response-{nn}.md`)
+   - **Resume the review subagent**: instruct it to read the response file and re-review the codebase, then write the next review file
+   - Repeat until the review file contains approval with no issues
 
-5. **If issues exist**:
-   - Fix all identified issues
-   - Re-run verification
-   - Perform self-review again
-   - **Resume the same subagent** using the stored agent ID
-   - Repeat until external review passes
-
-6. **If no issues**:
+5. **If no issues**:
    - External review passed
-   - Mark task as complete and proceed to next task
-   - Do NOT terminate the subagent (it will be reused for the next task)
+   - Proceed to Memory Recording
 
 #### Memory Recording
 
-After external review passes, record learnings from this task in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`:
+After external review passes, **resume the implementation subagent** to record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. The implementation subagent experienced the full cycle (implementation, verification, self-review, and fix loops) and is best positioned to capture meaningful learnings.
+
+Instruct the subagent to:
+- Read the review exchange files in `mail/` to also capture learnings from the review process
+- Write entries to `memory.md` following the template below
+- Return a proposed commit message that reflects the final state of the implementation (including any changes made during fix loops)
+- Return to the orchestrator after writing
 
 1. **Create or update memory.md** in the task directory
 2. **Title**: Use `# {Plan Title} Implementation` as the document title (e.g., `# User Authentication Implementation`)
@@ -265,14 +308,16 @@ See [memory.md](references/memory.md) for example format.
 
 #### Git Commit
 
-After recording learnings, commit all changes for this task:
+This section applies when a commit is needed — either per-task (when `commitPolicy = "per-task"`) or at the end of all tasks (when `commitPolicy = "end"`).
+
+After recording learnings, the orchestrator commits changes using the commit message proposed by the implementation subagent.
 
 1. **Check for commit message rules**
    - Look for project-specific commit conventions (e.g., `.gitmessage`, `CONTRIBUTING.md`, or repository rules)
-   - If rules exist, follow them
+   - If rules exist, instruct the implementation subagent to follow them when proposing the commit message
 
 2. **Default to Conventional Commits**
-   - If no project-specific rules exist, use [Conventional Commits](https://www.conventionalcommits.org/) format:
+   - If no project-specific rules exist, the implementation subagent should propose a message following [Conventional Commits](https://www.conventionalcommits.org/) format:
      ```
      <type>(<scope>): <description>
      ```
@@ -285,6 +330,18 @@ After recording learnings, commit all changes for this task:
    - Create commit with appropriate message
    - Do NOT push (user will decide when to push)
 
+**Behavior by `commitPolicy`**:
+
+| Policy | Per-task commit | End-of-phase commit |
+|--------|----------------|---------------------|
+| `per-task` | Yes — commit after each task completes | No — already committed per task |
+| `end` | No — skip per-task commits | Yes — commit all accumulated changes after all tasks complete (see Phase 3) |
+| `none` | No | No — user handles all commits manually |
+
+When `commitPolicy = "end"`, each implementation subagent still proposes a commit message. The orchestrator collects these messages and uses them to compose a single combined commit message at the end.
+
+When `commitPolicy = "none"`, implementation subagents still propose commit messages (returned to the orchestrator for reference), but no commits are created. The orchestrator also skips the agent instruction updates commit in Phase 3.
+
 **Note**: If `plan.json` is not gitignored, including it in the commit ensures consistency when resuming interrupted work. If it is gitignored, it will be automatically excluded and the commit will proceed normally.
 
 ### Phase 3: Completion
@@ -294,13 +351,31 @@ Before reporting completion to user:
 1. Verify all tasks in `plan.json` have `status = "done"`
 2. Verify all todos are marked as completed
 3. If any task is incomplete, return to Phase 2 and complete remaining tasks
-4. Update agent instruction files with learnings (see below)
-5. **External review of agent instruction updates**: Resume the review subagent and request review of the updated agent instruction files (see below)
-6. Git commit the updates (use commit message: `docs: update agent instructions with learnings from {slug}`)
-7. **Terminate review subagent**: If a review subagent was used and a terminate function is available, terminate it by specifying the stored agent ID. If termination is not supported, do nothing.
-8. Provide summary of completed work
+4. If `commitPolicy = "end"`: Commit all accumulated implementation changes (see Batch Commit below)
+5. Update agent instruction files with learnings — behavior depends on `updateAgentDocs` (see below)
+6. Git commit the agent instruction updates (if `updateAgentDocs = "auto"` and `commitPolicy != "none"`, use commit message: `docs: update agent instructions with learnings from {slug}`)
+7. Provide summary of completed work
+
+#### Batch Commit (`commitPolicy = "end"`)
+
+When `commitPolicy = "end"`, no per-task commits were made during Phase 2. Commit all implementation changes here:
+
+1. Collect the commit messages proposed by each implementation subagent during Phase 2
+2. Compose a single commit message that summarizes all tasks:
+   - Use the plan title as the commit subject line
+   - List individual task summaries in the commit body
+   - Follow the same commit message rules (project conventions or Conventional Commits)
+3. Stage and commit all changes
+4. Do NOT push (user will decide when to push)
 
 #### Update Agent Instruction Files
+
+Behavior depends on the `updateAgentDocs` setting in `plan.json`:
+
+- **`auto`** (default): Integrate learnings into agent instruction files and commit (full flow below)
+- **`suggest`**: Write suggested updates to `.tasks/{YYYY-MM-DD}-{nn}-{slug}/agent-docs-suggestions.md` instead of modifying agent instruction files. Skip the external review of agent instruction updates and the corresponding git commit. The suggestion file should contain the same content that would have been added to agent instruction files, organized by target file and section, so the user can manually integrate them.
+
+**The following steps apply only when `updateAgentDocs = "auto"`:**
 
 Integrate universally applicable learnings from `memory.md` into agent instruction files (`AGENTS.md` and/or `CLAUDE.md`).
 
@@ -375,33 +450,41 @@ DO NOT create a "Learnings" section:
 
 #### External Review of Agent Instruction Updates
 
-After updating agent instruction files, request external review using the same review subagent:
+After updating agent instruction files, request external review using a new review subagent. Use the same file-based communication via `mail/`:
 
-1. **Resume or re-launch the review subagent** — if the stored agent ID is still valid, resume it; otherwise launch a new one and store the new agent ID
-2. **Provide the updated files** for review — include the diff or full content of each updated agent instruction file
-3. **Review criteria** for agent instruction files:
+```
+mail/agents-review-01.md              ← reviewer: findings
+mail/agents-review-response-01.md     ← orchestrator: fixes + explanations
+mail/agents-review-02.md              ← reviewer: approved
+```
+
+1. **Launch a new review subagent** and store the agent ID in session memory
+2. **Provide the updated files** — instruct the subagent to read the diff or full content of each updated agent instruction file
+3. **Instruct the subagent to write findings** to `mail/agents-review-{nn}.md`
+4. **Explicitly instruct**: "Your ONLY role is code review. Write your findings to the review file, then stop and return to me. Do NOT fix code, do NOT implement anything, do NOT proceed to other tasks."
+5. **Review criteria** for agent instruction files:
    - Are the learnings correctly scoped (codebase-wide, not task-specific)?
    - Are entries placed in appropriate sections?
    - Are entries concise, actionable, and useful for other developers?
    - Is there any duplication with existing content?
    - Does the content read naturally within the existing document structure?
-4. **If issues exist**: Fix all identified issues, then resume the subagent for re-review
-5. **If no issues**: Proceed to git commit
+6. **If issues exist**: Fix all identified issues, write `mail/agents-review-response-{nn}.md`, then resume the subagent to read the response and re-review
+7. **If no issues**: Proceed to git commit
 
 ## Important Rules
 
 - **NEVER stop mid-workflow** - Complete ALL tasks from start to finish without interruption
+- **Orchestrator stays lean** - The orchestrator delegates implementation, review, and memory recording to subagents; it only handles task sequencing, git commits, and agent instruction file updates
+- **Respect workflow options** - Read `commitPolicy` and `updateAgentDocs` from `plan.json` at the start and follow them throughout execution
 - **Execute tasks by dependency** - Pick any task where all dependencies are complete; no strict execution order
-- **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit → Mark complete
-- **Run verification after implementation** - Execute lint, tests, and build checks; fix all issues before self-review
-- **Resolve ALL self-review issues before external review** - External review is high-cost; do not waste it on issues you can find yourself
-- **Use single subagent for external review** - Launch at first external review, reuse across ALL tasks in Phase 2 and for agent instruction file review in Phase 3
-- **Re-launch subagent if terminated** - If the subagent has been terminated unexpectedly, launch a new one, store the new agent ID, and have it read plan.md and relevant codebase before proceeding
-- **Keep subagent ID in session memory** - Store the agent ID to resume the same subagent for all external reviews throughout the workflow
-- **Terminate subagent only after Phase 3 review** - Do NOT terminate the review subagent until agent instruction file review is complete
-- **Record learnings in memory.md** - After each task, document discoveries, gotchas, and patterns in memory.md
+- **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit (if `per-task`) → Mark complete
+- **Launch new subagents per task** - Each task gets fresh implementation and review subagents with clean context to maintain quality regardless of plan size
+- **Reuse subagents within a task** - When fix→re-review loops occur within a single task, resume the same implementation and review subagents to preserve context
+- **Launch a new review subagent for Phase 3** - Agent instruction file review in Phase 3 also gets a fresh subagent
+- **Communicate through `mail/` files** - Subagents exchange review findings and responses via files in `mail/` to prevent information loss through orchestrator relay
+- **Implementation subagent writes memory.md** - After external review passes, resume the implementation subagent to record learnings (it has the richest context from the full implementation and review cycle)
 - **Update appropriate agent instruction files** - AGENTS.md / CLAUDE.md can exist in root and subdirectories; determine update targets per Step 1 rules and match learnings to the closest relevant file
 - **Create AGENTS.md if neither exists** - If no AGENTS.md or CLAUDE.md exists in the repository, create AGENTS.md at root with universal learnings
 - **Save temporary files under the plan directory** - Any temporary files created during investigation or implementation (e.g., debug logs, analysis outputs, scratch notes) must be saved under `.tasks/{YYYY-MM-DD}-{nn}-{slug}/tmp/`. Do NOT save them in the project root or other locations. Clean up when no longer needed.
-- Fix review findings autonomously based on fix complexity - do NOT ask user permission for simple/moderate fixes
-- Only consult user when fixes require significant architectural changes or widespread modifications
+- Implementation subagent fixes review findings autonomously based on fix complexity
+- Implementation subagent reports to orchestrator when fixes require significant architectural changes; orchestrator consults user

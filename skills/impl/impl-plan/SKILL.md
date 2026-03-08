@@ -325,6 +325,54 @@ The summary should enable the user to grasp the entire plan without reading `pla
 - Omit execution-phase details (dependency order, implementation steps) — focus on *what* and *why*, not *how* or *when*
 - Do NOT use Mermaid diagrams — they cannot be rendered in chat. Use ASCII art instead when a visual representation aids understanding
 
+### 8. Configure Workflow Options
+
+After presenting the plan summary, ask the user to configure workflow options and save their choices to `plan.json`.
+
+#### 8.1 Commit Policy (`commitPolicy`)
+
+Determine the recommended value based on task scale:
+
+- If tasks are large (complex multi-file changes, estimated hours of work) → recommend `per-task`
+- If tasks are small (localized changes, estimated minutes of work) → recommend `end`
+
+Present the recommendation with a brief rationale and let the user choose:
+
+| Value | Behavior |
+|-------|----------|
+| `per-task` | Commit after each task completes (safe rollback points, good for large tasks) |
+| `end` | Commit once after all tasks complete (clean for small tasks, allows batch review before commit) |
+| `none` | No automatic commits (user handles all commits manually) |
+
+Only recommend `per-task` or `end` based on task scale. `none` is not recommended but is available if the user explicitly wants full manual control.
+
+#### 8.2 Agent Docs Update Policy (`updateAgentDocs`)
+
+Ask the user to choose how agent instruction files (AGENTS.md / CLAUDE.md) should be updated after implementation. Recommend `suggest`:
+
+| Value | Behavior |
+|-------|----------|
+| `auto` | Automatically update agent instruction files with learnings |
+| `suggest` | Write suggested updates to `.tasks/{dir}/agent-docs-suggestions.md` without modifying agent instruction files (recommended) |
+
+#### 8.3 Confirm and Save to plan.json
+
+**The user must explicitly confirm their selections before proceeding.** Do NOT interpret a non-selection response (e.g., a question about the plan, a request for clarification) as acceptance of defaults. If the user responds with something other than a selection:
+
+1. Answer the question or address the request
+2. Re-present the workflow options and ask again
+
+Only proceed when the user has made an explicit choice for each option, or explicitly says to use defaults (e.g., "defaults are fine", "go with the recommendations").
+
+After confirmation, update `plan.json` with the chosen values:
+
+```json
+{
+  "commitPolicy": "<user's choice>",
+  "updateAgentDocs": "<user's choice>"
+}
+```
+
 ## Guidelines
 
 ### Diagrams

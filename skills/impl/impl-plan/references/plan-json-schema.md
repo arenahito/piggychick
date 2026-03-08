@@ -8,6 +8,8 @@ Machine-readable progress tracking file saved alongside `plan.md`.
 {
     "title": "{Plan Title}",
     "plan": "plan.md",
+    "commitPolicy": "per-task",
+    "updateAgentDocs": "auto",
     "tasks": [
         {
             "id": "{uuid}",
@@ -31,6 +33,8 @@ Machine-readable progress tracking file saved alongside `plan.md`.
 |-------|------|-------------|
 | `title` | string | Plan title (same as in plan.md) |
 | `plan` | string | Relative path to the plan document |
+| `commitPolicy` | string | When to commit: `"per-task"` (after each task) \| `"end"` (after all tasks complete) \| `"none"` (no automatic commits). Default: `"per-task"` |
+| `updateAgentDocs` | string | Agent instruction file update mode: `"auto"` (update automatically) \| `"suggest"` (write suggestions to file without modifying). Default: `"auto"` |
 | `tasks` | array | Array of task objects |
 
 ### Task Object
