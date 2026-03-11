@@ -2,15 +2,16 @@
 
 ## Implementation Lifecycle
 
-You handle the complete lifecycle for your assigned task:
+You handle implementation, verification, and self-review for your assigned task:
 
 1. Implement the task according to `plan.md`
 2. Run verification checks (see Verification below)
 3. Perform self-review (see Self-Review below)
-4. Launch external review as a nested subagent (see External Review below)
-5. If review finds issues: fix them, re-run verification, re-do self-review, and resume the review subagent — repeat until approved
-6. Record learnings in `memory.md` (see Memory Recording below)
-7. Return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message
+4. Return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message
+
+After your initial return, the orchestrator may resume you for:
+- **Fix loops**: When external review finds issues (see Fix Loop below)
+- **Memory recording**: After external review passes (see Memory Recording below)
 
 ## Verification
 
@@ -81,62 +82,24 @@ After verification passes, perform self-review:
 
 When reporting these issues, return to the orchestrator with a description of the problem and proposed options. The orchestrator will consult the user and resume you with the decision.
 
-## External Review
+## Fix Loop
 
-After self-review passes, launch a review subagent as a nested child. This enables direct communication between you and the reviewer without intermediary relays.
+When resumed by the orchestrator after external review finds issues:
 
-**IMPORTANT**: Resolve all self-review issues BEFORE launching external review.
-
-**NOTE**: External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified. The reviewer must NOT re-run these checks.
-
-### Review Launch
-
-1. **Launch a new review subagent** as a nested child
-2. **Provide task context and role boundaries**
-   - Pass the current task ID (UUID) and task prefix
-   - Instruct the subagent to read the corresponding section in `plan.md` for design intent, requirements, and target files
-   - Provide the list of files changed in this task
-   - Instruct the subagent to read the relevant codebase (changed files and their surrounding context)
-   - **Explicitly instruct**: "Your ONLY role is code review. Return your findings, then stop. Do NOT fix code, do NOT implement anything."
-
-3. **Review scope**
-
-   The reviewer focuses on issues that the implementer is likely to miss due to their own bias:
-
-   **In scope:**
-   - Alignment with design intent described in `plan.md`
-   - Code readability and maintainability (naming, structure, separation of concerns)
-   - Edge cases and error handling the implementer may have overlooked
-   - Security and performance concerns (structural issues, not micro-optimizations)
-   - Consistency with existing codebase conventions and patterns
-
-   **Out of scope** (already verified):
-   - Lint / static analysis results
-   - Type checking
-   - Test execution and results
-   - Build success
-   - Acceptance criteria verification
-
-### Fix Loop
-
-4. **If the review subagent returns issues**:
-   - Fix the issues
-   - Re-run verification checks
-   - Perform self-review
-   - **Resume the review subagent**: instruct it to re-review the codebase for the reported issues
-   - Repeat until the review subagent returns approval with no issues
-
-5. **If no issues**:
-   - External review passed
-   - Proceed to Memory Recording
+1. Read the review file (`mail/{task-prefix}-review-{nn}.md`) as instructed by the orchestrator
+2. Fix all identified issues
+3. Re-run verification checks
+4. Perform self-review
+5. Write a response file (`mail/{task-prefix}-review-response-{nn}.md`) addressing each finding: what was fixed, or why a finding was intentionally not addressed
+6. Return to the orchestrator
 
 ## Memory Recording
 
-After external review passes, record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. You experienced the full cycle (implementation, verification, self-review, and review fix loops) and are best positioned to capture meaningful learnings.
+When resumed by the orchestrator after external review passes, record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. You experienced the full cycle (implementation, verification, self-review, and review fix loops) and are best positioned to capture meaningful learnings.
 
-- Capture learnings from both the implementation process and the review exchange
+- Read the review exchange files in `mail/` to also capture learnings from the review process
 - Write entries to `memory.md` following the template below
-- After writing, return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message
+- After writing, return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message (reflecting the final state including any changes made during fix loops)
 
 1. **Create or update memory.md** in the task directory
 2. **Title**: Use `# {Plan Title} Implementation` as the document title (e.g., `# User Authentication Implementation`)
@@ -186,8 +149,9 @@ See [memory.md](references/memory.md) for example format.
 
 ## Important Rules
 
-- **Own the full cycle** - Handle implementation, verification, self-review, external review (as a nested subagent), and memory recording — then return results to the orchestrator
-- **Reuse review subagents within a task** - When fix→re-review loops occur, resume the same review subagent to preserve review context
+- **Handle implementation, verification, and self-review** — then return results to the orchestrator
+- **When resumed for fix loops** — read review findings from `mail/`, fix issues, write response to `mail/`, then return
+- **When resumed for memory recording** — read review exchange from `mail/`, write learnings to `memory.md`, then return
 - **Fix review findings autonomously** based on fix complexity
 - **Report to orchestrator** when fixes require significant architectural changes; do NOT fix autonomously
 - **Save temporary files under the plan directory** - Any temporary files created during investigation or implementation (e.g., debug logs, analysis outputs, scratch notes) must be saved under `.tasks/{YYYY-MM-DD}-{nn}-{slug}/tmp/`. Do NOT save them in the project root or other locations. Clean up when no longer needed.

@@ -4,11 +4,11 @@ description: |
   Workflow for executing implementation tasks using an orchestrator pattern.
   Use this skill when you need to:
   (1) Execute a prepared implementation plan
-  (2) Orchestrate tasks by delegating full lifecycle to implementation subagents
+  (2) Orchestrate tasks by delegating implementation and review to subagents
   (3) For each task: implement → verify → self-review → external review (all via subagents)
-  This skill enforces: (a) dependency-based task execution, (b) per-task subagent isolation, (c) nested review within implementation subagents.
+  This skill enforces: (a) dependency-based task execution, (b) per-task subagent isolation, (c) per-task review cycle.
 metadata:
-  short-description: Execute implementation plans with orchestrator pattern and nested subagent review
+  short-description: Execute implementation plans with orchestrator pattern and per-task subagent isolation
 ---
 
 # Implementation Workflow
@@ -20,6 +20,7 @@ This workflow uses files from the `.tasks/{YYYY-MM-DD}-{nn}-{slug}/` directory c
 - **plan.md** - Human-readable plan with task descriptions, file paths, and acceptance criteria
 - **plan.json** - Machine-readable task list and workflow options for tracking progress
 - **memory.md** - Learnings recorded during task execution (created by this workflow)
+- **mail/** - File-based communication between subagents (created by this workflow)
 
 See [plan-json-schema.md](../impl-plan/references/plan-json-schema.md) for:
 - Schema definition of `plan.json` (including `commitPolicy` and `updateAgentDocs` options)
