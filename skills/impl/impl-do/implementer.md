@@ -149,6 +149,9 @@ See [memory.md](references/memory.md) for example format.
 
 ## Important Rules
 
+- **Work ONLY on your assigned task** — Do NOT implement, modify, or touch code related to other tasks in the plan, even if you can see them in `plan.md`. Your scope is strictly limited to the single task the orchestrator assigned to you.
+- **NEVER make git commits** — Git operations (add, commit, push) are the orchestrator's sole responsibility. Return your proposed commit message to the orchestrator; do NOT execute any git commands yourself.
+- **NEVER proceed to other tasks** — After completing your assigned task (or when resumed for fix loops / memory recording), return to the orchestrator immediately. Do NOT pick up the next task.
 - **Handle implementation, verification, and self-review** — then return results to the orchestrator
 - **When resumed for fix loops** — read review findings from `mail/`, fix issues, write response to `mail/`, then return
 - **When resumed for memory recording** — read review exchange from `mail/`, write learnings to `memory.md`, then return

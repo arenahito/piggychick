@@ -89,6 +89,8 @@ For each task, launch a new implementation subagent with clean context.
 3. Perform self-review (see Self-Review in implementer.md)
 4. Return: list of changed files, a brief implementation summary, and a proposed commit message
 
+**Explicitly instruct**: "You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. After completing implementation, verification, and self-review, return your results to me immediately and stop."
+
 **Store the agent ID** in session memory for potential fix loops later in the review phase.
 
 **Handling complex issues**: If the subagent reports issues requiring significant architectural changes, consult the user and resume the subagent with the decision.
