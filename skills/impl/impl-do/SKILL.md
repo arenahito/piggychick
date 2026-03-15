@@ -36,4 +36,4 @@ This skill consists of role-specific instruction files. Read **only** the file f
 
 - **Orchestrator**: Read [orchestrator.md](orchestrator.md)
 - **Implementation subagent**: Read [implementer.md](implementer.md)
-- **Review subagent**: Your instructions are provided in the launch prompt
+- **Review subagent**: Read [reviewer.md](reviewer.md)

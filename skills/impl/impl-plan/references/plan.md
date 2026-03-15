@@ -88,12 +88,17 @@ Clarifications and decisions made during planning:
 
 Document authentication API endpoints before implementation. This specification serves as the contract between backend and frontend development, enabling parallel work streams.
 
+#### Constraints
+
+- Specification must cover all auth endpoints (register, login, refresh, logout)
+- Each endpoint must define error codes and messages
+- Specification must include authentication flow diagram
+
 #### Details
 
-- Define all auth endpoints (register, login, refresh, logout)
 - Specify request/response schemas with examples
-- Document error codes and messages
-- Define authentication flow and token format
+- Document token format and claims
+- Define authentication flow and sequence
 
 Example endpoint specification:
 
@@ -120,6 +125,12 @@ Errors: 401 Invalid credentials, 429 Rate limited
 #### Description
 
 Define the User model with secure password hashing. This model is the foundation for all authentication operations.
+
+#### Constraints
+
+- Password must never be stored in plain text
+- Email must be unique across all users
+- Model must expose a method to verify passwords against stored hash
 
 #### Details
 
@@ -154,6 +165,13 @@ interface User {
 
 Implement authentication business logic including registration, login, token refresh, and logout. This service encapsulates all auth-related operations.
 
+#### Constraints
+
+- Invalid credentials must return appropriate errors (not leak user existence)
+- Tokens must contain correct claims (userId, exp, iat)
+- Refresh tokens must be individually revocable (support logout from all devices)
+- Access token lifetime must be short; refresh token lifetime must be longer
+
 #### Details
 
 Methods to implement:
@@ -185,6 +203,13 @@ Token configuration:
 #### Description
 
 Implement the HTTP layer for authentication including middleware, controllers, and routes. This exposes the auth service via REST API.
+
+#### Constraints
+
+- Protected routes must return 401 without a valid token
+- Refresh token must be stored in httpOnly cookie (not accessible to JavaScript)
+- Login endpoint must be rate-limited (5 requests per minute)
+- Must follow existing error response format
 
 #### Details
 
@@ -220,6 +245,13 @@ Implement the HTTP layer for authentication including middleware, controllers, a
 #### Description
 
 Implement login and registration forms with client-side validation, error handling, and loading states. These forms provide the user interface for authentication.
+
+#### Constraints
+
+- Forms must validate input before submission (no invalid requests to API)
+- API error messages must be displayed to the user
+- Forms must show loading state during submission (no double-submit)
+- Successful login must redirect to dashboard; successful registration must redirect to login
 
 #### Details
 

@@ -78,7 +78,7 @@ For each task, launch a new implementation subagent with clean context.
 - Path to `implementer.md` in this skill directory
 - Instruct the subagent to read `implementer.md` and follow it
 - Instruct the subagent to also read:
-  - The corresponding section in `plan.md` for design intent, requirements, file paths, and acceptance criteria
+  - The full corresponding section in `plan.md` (Description, Constraints, Details, and Acceptance Criteria)
   - `memory.md` (if exists) for learnings from previous tasks
   - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
 
@@ -97,63 +97,28 @@ For each task, launch a new implementation subagent with clean context.
 
 #### External Review
 
-After the implementation subagent completes, the orchestrator launches a review subagent for external review. Subagents communicate through files in the `mail/` directory to prevent information loss.
+After the implementation subagent completes, launch a review subagent for external review.
 
 **IMPORTANT**: The implementation subagent must resolve all self-review issues BEFORE the orchestrator requests external review.
-
-**NOTE**: External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementation subagent. The reviewer must NOT re-run these checks.
-
-##### File Naming Convention
-
-Files in `mail/` follow the pattern `{task-prefix}-{topic}-{nn}.md` with zero-padded 2-digit round numbers:
-
-```
-mail/B1-review-01.md              ← reviewer: findings (round 1)
-mail/B1-review-response-01.md     ← coder: fixes applied + explanations
-mail/B1-review-02.md              ← reviewer: re-review (round 2)
-mail/B1-review-response-02.md     ← coder: fixes applied + explanations
-mail/B1-review-03.md              ← reviewer: approved (no issues)
-```
-
-- The review file for the final round contains the approval (no response file needed)
-- Response files must address each finding: what was fixed, or why a finding was intentionally not addressed
 
 ##### Review Flow
 
 1. **Launch a new review subagent** for this task and store the agent ID in session memory
 
-2. **Provide task context and role boundaries**
-   - Pass the current task ID (UUID) and task prefix
-   - Instruct the subagent to read the corresponding section in `plan.md` for design intent, requirements, and target files
-   - Provide the list of files changed in this task (received from the implementation subagent)
-   - Instruct the subagent to read the relevant codebase (changed files and their surrounding context)
-   - Instruct the subagent to write review findings to `mail/{task-prefix}-review-{nn}.md`
-   - **Explicitly instruct**: "Your ONLY role is code review. Write your findings to the review file, then stop and return to me. Do NOT fix code, do NOT implement anything, do NOT proceed to other tasks."
+2. **Provide task context**
+   - Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
+   - Current task prefix and ID
+   - Path to `reviewer.md` in this skill directory
+   - The list of files changed in this task (received from the implementation subagent)
+   - Instruct the subagent to read `reviewer.md` and follow it
+   - Instruct the subagent to also read the **Description**, **Constraints**, and **Acceptance Criteria** sections for this task in `plan.md`
 
-3. **Review scope**
-
-   The reviewer focuses on issues that the implementer is likely to miss due to their own bias:
-
-   **In scope:**
-   - Alignment with design intent described in `plan.md`
-   - Code readability and maintainability (naming, structure, separation of concerns)
-   - Edge cases and error handling the implementer may have overlooked
-   - Security and performance concerns (structural issues, not micro-optimizations)
-   - Consistency with existing codebase conventions and patterns
-
-   **Out of scope** (already verified by the implementation subagent):
-   - Lint / static analysis results
-   - Type checking
-   - Test execution and results
-   - Build success
-   - Acceptance criteria verification
-
-4. **If issues exist**:
+3. **If issues exist**:
    - **Resume the implementation subagent**: instruct it to read the review file (`mail/{task-prefix}-review-{nn}.md`), fix issues, re-run verification, perform self-review, and write a response file (`mail/{task-prefix}-review-response-{nn}.md`)
-   - **Resume the review subagent**: instruct it to read the response file and re-review the codebase, then write the next review file
+   - **Resume the review subagent**: instruct it to read the response file and re-review the codebase
    - Repeat until the review file contains approval with no issues
 
-5. **If no issues**:
+4. **If no issues**:
    - External review passed
    - Proceed to Memory Recording
 
@@ -311,26 +276,15 @@ DO NOT create a "Learnings" section:
 
 #### External Review of Agent Instruction Updates
 
-After updating agent instruction files, request external review using a new review subagent. Use the same file-based communication via `mail/`:
-
-```
-mail/agents-review-01.md              ← reviewer: findings
-mail/agents-review-response-01.md     ← orchestrator: fixes + explanations
-mail/agents-review-02.md              ← reviewer: approved
-```
+After updating agent instruction files, launch a new review subagent:
 
 1. **Launch a new review subagent** and store the agent ID in session memory
-2. **Provide the updated files** — instruct the subagent to read the diff or full content of each updated agent instruction file
-3. **Instruct the subagent to write findings** to `mail/agents-review-{nn}.md`
-4. **Explicitly instruct**: "Your ONLY role is code review. Write your findings to the review file, then stop and return to me. Do NOT fix code, do NOT implement anything, do NOT proceed to other tasks."
-5. **Review criteria** for agent instruction files:
-   - Are the learnings correctly scoped (codebase-wide, not task-specific)?
-   - Are entries placed in appropriate sections?
-   - Are entries concise, actionable, and useful for other developers?
-   - Is there any duplication with existing content?
-   - Does the content read naturally within the existing document structure?
-6. **If issues exist**: Fix all identified issues, write `mail/agents-review-response-{nn}.md`, then resume the subagent to read the response and re-review
-7. **If no issues**: Proceed to git commit
+2. **Provide context**:
+   - Path to `reviewer.md` in this skill directory
+   - The updated agent instruction files (paths)
+   - Instruct the subagent to read `reviewer.md` and follow it, including the "Agent Instruction Review" section for additional criteria
+3. **If issues exist**: Fix all identified issues, write `mail/agents-review-response-{nn}.md`, then resume the subagent to re-review
+4. **If no issues**: Proceed to git commit
 
 ## Important Rules
 

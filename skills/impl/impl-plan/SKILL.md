@@ -151,13 +151,25 @@ Clarifications and decisions made during planning. This section preserves contex
 
 What to implement (1-2 paragraphs explaining the purpose and context)
 
+#### Constraints
+
+Rules and invariants the implementation must satisfy, regardless of implementation approach. Constraints are verifiable properties of the solution — they define *what must hold*, not *how to build it*.
+
+- Security requirements (e.g., "passwords must never be stored in plain text")
+- Performance requirements (e.g., "response time must be under 200ms")
+- Design invariants (e.g., "API must be idempotent")
+- Integration rules (e.g., "must use existing database connection pool", "must follow existing error response format")
+- Behavioral rules (e.g., "must handle concurrent access safely")
+
 #### Details
 
-- Specific implementation steps
-- Code patterns to follow
-- Edge cases to handle
+Specific implementation steps, code patterns, and technical decisions that guide the implementer. This section tells the implementer *how* to build it.
 
-(Include code examples, data structures, API contracts, mockups as needed)
+- Concrete file paths, function/class names, data structures
+- Step-by-step implementation instructions
+- Code examples, API contracts, mockups
+- Library/framework-specific usage
+- Edge cases and how to handle them
 
 #### Acceptance Criteria
 
@@ -428,6 +440,28 @@ Include enough detail that another engineer can implement without asking questio
 - Design decisions and their rationale
 - Edge cases and how to handle them
 - Any assumptions made during planning
+
+### Constraints vs. Details
+
+Each task has both a **Constraints** section and a **Details** section. These serve different audiences:
+
+- **Constraints** are read by both the implementer and the reviewer
+- **Details** are read only by the implementer (the reviewer does NOT see them)
+
+This separation prevents the reviewer from being biased by implementation specifics, allowing them to evaluate the code from a fresh perspective while still understanding what rules the code must satisfy.
+
+**Classification guide**:
+
+| Goes in Constraints | Goes in Details |
+|---|---|
+| Rules the code must satisfy regardless of approach | Specific steps to build the solution |
+| Verifiable properties of the solution | Implementation-specific decisions |
+| "Passwords must never be stored in plain text" | "Use bcrypt with cost factor 12" |
+| "API must be idempotent" | "Store request IDs in Redis for dedup" |
+| "Must use existing DB connection pool" | "Call `getConnection()` from `src/db/pool.ts`" |
+| "Must handle concurrent access safely" | "Use optimistic locking with a `version` column" |
+
+**When in doubt**, put it in Constraints. An over-informed reviewer is better than an under-informed one — the risk of bias from a constraint-level statement is much lower than from detailed implementation instructions.
 
 ### What to Avoid
 
