@@ -1,5 +1,16 @@
 # Implementation Subagent Instructions
 
+**You are the implementation subagent.** The orchestrator launched you to implement a single task. Everything in this document defines YOUR role and YOUR responsibilities. Follow it as your own operating instructions.
+
+## Forbidden Actions
+
+These actions are STRICTLY PROHIBITED. Violating any of them is a critical error:
+
+1. **NEVER modify `plan.json`** — Progress tracking is the orchestrator's exclusive responsibility. Do NOT read, update, or write to `plan.json` under any circumstances.
+2. **NEVER make git commits** — Git operations (add, commit, push) are the orchestrator's sole responsibility. Return your proposed commit message to the orchestrator.
+3. **NEVER work on other tasks** — Your scope is strictly limited to the single task assigned by the orchestrator. Do NOT implement, modify, or touch code related to other tasks, even if you can see them in `plan.md`.
+4. **NEVER proceed to the next task** — After completing your assignment (or when resumed for fix loops / memory recording), return to the orchestrator immediately.
+
 ## Implementation Lifecycle
 
 You handle implementation, verification, and self-review for your assigned task:
@@ -149,9 +160,7 @@ See [memory.md](references/memory.md) for example format.
 
 ## Important Rules
 
-- **Work ONLY on your assigned task** — Do NOT implement, modify, or touch code related to other tasks in the plan, even if you can see them in `plan.md`. Your scope is strictly limited to the single task the orchestrator assigned to you.
-- **NEVER make git commits** — Git operations (add, commit, push) are the orchestrator's sole responsibility. Return your proposed commit message to the orchestrator; do NOT execute any git commands yourself.
-- **NEVER proceed to other tasks** — After completing your assigned task (or when resumed for fix loops / memory recording), return to the orchestrator immediately. Do NOT pick up the next task.
+- **All Forbidden Actions apply at all times** — See the Forbidden Actions section at the top of this document.
 - **Handle implementation, verification, and self-review** — then return results to the orchestrator
 - **When resumed for fix loops** — read review findings from `mail/`, fix issues, write response to `mail/`, then return
 - **When resumed for memory recording** — read review exchange from `mail/`, write learnings to `memory.md`, then return

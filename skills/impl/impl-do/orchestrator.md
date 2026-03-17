@@ -4,7 +4,7 @@
 
 1. **Orchestrate, don't implement** - Delegate the full task lifecycle to implementation subagents, keeping your own context lean
 2. **Execute tasks by dependency** - Pick any task with no unresolved dependencies and execute it
-3. **Isolate subagents per task** - Each task gets fresh implementation and review subagents to maintain quality at scale
+3. **Isolate subagents per task** - Each task gets fresh implementation and review subagents with no inherited parent context to maintain quality at scale
 4. **Complete each task fully** - Implementation → Verification → Self-review → External review as one unit per task
 5. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
 
@@ -69,7 +69,7 @@ The orchestrator delegates implementation and review to subagents, coordinating 
 
 #### Implementation
 
-For each task, launch a new implementation subagent with clean context.
+For each task, launch a new implementation subagent. Do NOT inherit parent context — the subagent must start with a clean context.
 
 **Context to provide:**
 
@@ -89,7 +89,7 @@ For each task, launch a new implementation subagent with clean context.
 3. Perform self-review (see Self-Review in implementer.md)
 4. Return: list of changed files, a brief implementation summary, and a proposed commit message
 
-**Explicitly instruct**: "You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. After completing implementation, verification, and self-review, return your results to me immediately and stop."
+**Explicitly instruct**: "You are the implementation subagent. You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. Do NOT modify plan.json — progress tracking is my exclusive responsibility. After completing implementation, verification, and self-review, return your results to me immediately and stop."
 
 **Store the agent ID** in session memory for potential fix loops later in the review phase.
 
@@ -112,6 +112,7 @@ After the implementation subagent completes, launch a review subagent for extern
    - The list of files changed in this task (received from the implementation subagent)
    - Instruct the subagent to read `reviewer.md` and follow it
    - Instruct the subagent to also read the **Description**, **Constraints**, and **Acceptance Criteria** sections for this task in `plan.md`
+   - **Explicitly instruct**: "You are the review subagent. Your ONLY role is code review — you are NOT the implementer. Do NOT fix code, do NOT implement anything, do NOT modify plan.json. Write your findings to mail/ files and return to me immediately."
 
 3. **If issues exist**:
    - **Resume the implementation subagent**: instruct it to read the review file (`mail/{task-prefix}-review-{nn}.md`), fix issues, re-run verification, perform self-review, and write a response file (`mail/{task-prefix}-review-response-{nn}.md`)
@@ -293,7 +294,7 @@ After updating agent instruction files, launch a new review subagent:
 - **Respect workflow options** - Read `commitPolicy` and `updateAgentDocs` from `plan.json` at the start and follow them throughout execution
 - **Execute tasks by dependency** - Pick any task where all dependencies are complete; no strict execution order
 - **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit (if `per-task`) → Mark complete
-- **Launch new subagents per task** - Each task gets fresh implementation and review subagents with clean context to maintain quality regardless of plan size
+- **Launch new subagents per task** - Each task gets fresh implementation and review subagents to maintain quality regardless of plan size. Always launch without inheriting parent context.
 - **Reuse subagents within a task** - When fix→re-review loops occur within a single task, resume the same implementation and review subagents to preserve context
 - **Launch a new review subagent for Phase 3** - Agent instruction file review in Phase 3 also gets a fresh subagent
 - **Communicate through `mail/` files** - Subagents exchange review findings and responses via files in `mail/` to prevent information loss through orchestrator relay
