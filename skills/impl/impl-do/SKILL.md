@@ -5,7 +5,7 @@ description: |
   Use this skill when you need to:
   (1) Execute a prepared implementation plan
   (2) Orchestrate tasks by delegating implementation and review to subagents
-  (3) For each task: implement → verify → self-review → external review (all via subagents)
+  (3) For each task: implement → verify → pre-review handoff → external review (all via subagents)
   This skill enforces: (a) dependency-based task execution, (b) per-task subagent isolation, (c) per-task review cycle.
 metadata:
   short-description: Execute implementation plans with orchestrator pattern and per-task subagent isolation
@@ -13,18 +13,17 @@ metadata:
 
 # Implementation Workflow
 
-## Reference
+## Task Directory
 
-This workflow uses files from the `.tasks/{YYYY-MM-DD}-{nn}-{slug}/` directory created by impl-plan:
+This workflow operates on a task directory at `.tasks/{YYYY-MM-DD}-{nn}-{slug}/`.
 
-- **plan.md** - Human-readable plan with task descriptions, file paths, and acceptance criteria
-- **plan.json** - Machine-readable task list and workflow options for tracking progress
-- **memory.md** - Learnings recorded during task execution (created by this workflow)
-- **mail/** - File-based communication between subagents (created by this workflow)
+Role-specific instructions define which files under that directory each role may read or write.
 
-See [plan-json-schema.md](../impl-plan/references/plan-json-schema.md) for:
-- Schema definition of `plan.json` (including `commitPolicy` and `updateAgentDocs` options)
-- yq commands to query next executable task and mark tasks complete
+## Startup Gate
+
+Before reading your role file, do NOT open any task file under `.tasks/`.
+
+For the orchestrator role, the first allowed read is `orchestrator.md` only.
 
 ## Documentation Language
 
@@ -35,5 +34,6 @@ All documents under `.tasks/` must be written in **English**.
 This skill consists of role-specific instruction files. Read **only** the file for your role:
 
 - **Orchestrator**: Read [orchestrator.md](orchestrator.md)
+- **Packet generation subagent**: Read [packet-generator.md](packet-generator.md)
 - **Implementation subagent**: Read [implementer.md](implementer.md)
 - **Review subagent**: Read [reviewer.md](reviewer.md)

@@ -15,11 +15,13 @@ These actions are STRICTLY PROHIBITED. Violating any of them is a critical error
 
 You handle code review for a completed task implementation:
 
-1. Read the task context (Description, Constraints, Acceptance Criteria from `plan.md`)
+1. Read the shared common packet and the review packet provided by the orchestrator
 2. Read the changed files and their surrounding context
 3. Perform code review (see Review Scope below)
 4. Write findings to `mail/{task-prefix}-review-{nn}.md`
-5. Return to the orchestrator
+5. Return to the orchestrator with:
+   - `APPROVED` when there are no issues, plus the approval file path
+   - `CHANGES_REQUESTED` when issues exist, plus the review file path and a concise summary of the requested fixes
 
 After your initial return, the orchestrator may resume you for:
 - **Re-review**: When the implementer has addressed your findings (see Re-review below)
@@ -28,11 +30,11 @@ After your initial return, the orchestrator may resume you for:
 
 External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementation subagent. Focus on issues the implementer is likely to miss due to their own bias.
 
-**IMPORTANT**: Do NOT read the **Details** section in `plan.md` — it contains implementation-specific instructions that would bias you toward the implementer's approach, reducing your ability to catch issues from a fresh perspective. Only read **Description**, **Constraints**, and **Acceptance Criteria**.
+**IMPORTANT**: The orchestrator may pass packet paths and response-file paths without preloading their contents. Open the shared common packet, the review packet, and any response files yourself. Use the shared common packet and the review packet as your primary task specification. They are generated from `plan.md`, and the review packet intentionally excludes implementation-specific details so you can review from a fresh perspective. Do NOT read the implementation packet unless the orchestrator explicitly instructs you to.
 
 **In scope:**
 
-- Alignment with constraints and requirements (based on Description, Constraints, and Acceptance Criteria)
+- Alignment with constraints and requirements (based on the shared common packet plus the review packet's Description, Constraints, and Acceptance Criteria)
 - Code readability and maintainability (naming, structure, separation of concerns)
 - Edge cases and error handling the implementer may have overlooked
 - Security and performance concerns (structural issues, not micro-optimizations)
@@ -72,7 +74,7 @@ When resumed by the orchestrator after the implementer has addressed your findin
 1. Read the response file (`mail/{task-prefix}-review-response-{nn}.md`)
 2. Re-review the codebase (read the changed files again to verify fixes)
 3. Write the next review file (`mail/{task-prefix}-review-{nn+1}.md`)
-4. Return to the orchestrator
+4. Return to the orchestrator with `APPROVED` or `CHANGES_REQUESTED`, the new mail file path, and a concise summary
 
 ## Agent Instruction Review
 
@@ -92,9 +94,16 @@ mail/agents-review-response-01.md     ← orchestrator: fixes + explanations
 mail/agents-review-02.md              ← reviewer: approved
 ```
 
+When returning from agent instruction review, use the same response contract:
+
+- `APPROVED` + approval file path when no issues remain
+- `CHANGES_REQUESTED` + review file path + concise summary when fixes are still needed
+
 ## Important Rules
 
 - **All Forbidden Actions apply at all times** — See the Forbidden Actions section at the top of this document.
-- **Do NOT read the Details section** in `plan.md` — Only read Description, Constraints, and Acceptance Criteria to maintain a fresh perspective.
+- **Do NOT bypass the review packet** — It is the review-facing source of truth unless the orchestrator explicitly asks for more context.
+- **Open delegated input files yourself** — do not assume the orchestrator has read or summarized packets, changed files, or review-response files before handing them to you
+- **Return machine-readable review status** — the orchestrator should be able to drive the loop without reading mail bodies
 - **Do NOT re-run mechanical checks** — Lint, type-check, tests, and builds have already been verified by the implementation subagent.
 - **Write findings to `mail/` files** — Use the naming convention specified above.

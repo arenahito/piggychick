@@ -7,18 +7,25 @@
 These actions are STRICTLY PROHIBITED. Violating any of them is a critical error:
 
 1. **NEVER modify `plan.json`** — Progress tracking is the orchestrator's exclusive responsibility. Do NOT read, update, or write to `plan.json` under any circumstances.
-2. **NEVER make git commits** — Git operations (add, commit, push) are the orchestrator's sole responsibility. Return your proposed commit message to the orchestrator.
-3. **NEVER work on other tasks** — Your scope is strictly limited to the single task assigned by the orchestrator. Do NOT implement, modify, or touch code related to other tasks, even if you can see them in `plan.md`.
+2. **NEVER make git commits** — Git operations (add, commit, push) are the orchestrator's sole responsibility.
+3. **NEVER work on other tasks** — Your scope is strictly limited to the single task assigned by the orchestrator. Do NOT implement, modify, or touch code related to other tasks, even if you can see them in the broader plan.
 4. **NEVER proceed to the next task** — After completing your assignment (or when resumed for fix loops / memory recording), return to the orchestrator immediately.
 
 ## Implementation Lifecycle
 
-You handle implementation, verification, and self-review for your assigned task:
+You handle implementation, verification, and pre-review handoff for your assigned task:
 
-1. Implement the task according to `plan.md`
+1. Implement the task according to the implementation packet
 2. Run verification checks (see Verification below)
-3. Perform self-review (see Self-Review below)
-4. Return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message
+3. Prepare the pre-review handoff required by the orchestrator (see Pre-Review Handoff below)
+4. Return to the orchestrator with the required handoff package
+
+The orchestrator will give you:
+
+- a shared common packet generated from the content before `## Tasks` in `plan.md`
+- an implementation packet for your task
+
+The orchestrator may pass these as file paths without preloading their contents. Open the files yourself and treat those packets as your primary task specification. The copied packet sections should match the source wording in `plan.md` exactly. Read other plan materials only if the orchestrator explicitly tells you to.
 
 After your initial return, the orchestrator may resume you for:
 - **Fix loops**: When external review finds issues (see Fix Loop below)
@@ -40,7 +47,7 @@ Run the following verification checks after implementation:
    - Verify the project builds successfully
 
 4. **Acceptance Criteria**
-   - Verify all acceptance criteria defined in `plan.md` for this task are met
+   - Verify all acceptance criteria defined in your implementation packet for this task are met
    - Each criterion must be explicitly checked and confirmed
 
 **Verification Loop** (MUST complete before proceeding):
@@ -49,49 +56,36 @@ Run the following verification checks after implementation:
 2. If ANY check fails or ANY acceptance criterion is not met:
    - Fix the issues (do NOT just report them)
    - Return to step 1 and re-run ALL checks
-3. Only proceed to self-review when ALL checks pass and ALL acceptance criteria are met
+3. Only proceed to the pre-review handoff when ALL checks pass and ALL acceptance criteria are met
 
 **CRITICAL**: Reporting issues without fixing them is NOT acceptable. The verification loop MUST continue until all checks pass and all acceptance criteria are satisfied.
 
-## Self-Review
+## Pre-Review Handoff
 
-After verification passes, perform self-review:
+After verification passes, prepare the handoff package that the orchestrator will use before requesting external review.
 
-1. Review implemented code for:
-   - Correctness and adherence to requirements
-   - Code quality and best practices
-   - Potential bugs and edge cases
-   - Security concerns
-   - Performance issues
-2. Based on review findings, determine response based on **fix complexity** (NOT issue severity):
-   - **Simple/Moderate fixes**: Fix autonomously without user confirmation
-   - **Complex fixes requiring significant changes**: Report to orchestrator (see below)
-3. For autonomous fixes:
-   - Apply fixes directly
-   - Re-run verification
-   - Re-run self-review
-   - Repeat until all issues are resolved
-4. **Proceed to External Review ONLY when self-review passes with no issues**
+Your handoff MUST include all of the following:
 
-**Fix Autonomously (regardless of issue severity):**
+1. **Changed files**
+   - List every file changed for this task
 
-- Localized code changes within a few files
-- Bug fixes and error corrections
-- Code style and formatting issues
-- Missing error handling
-- Performance improvements within current architecture
-- Documentation improvements
-- Test coverage additions
-- Refactoring within existing patterns
+2. **Verification**
+   - List the verification commands you ran and whether each passed or failed
+   - If a normally expected verification step was not run, state why it was not applicable or why it could not be run
 
-**Report to orchestrator (do NOT fix autonomously):**
+3. **Acceptance Criteria**
+   - Check every acceptance criterion from the assigned task
+   - Mark each criterion as `pass` or `fail`
+   - For each criterion, include concrete evidence such as a file path, artifact path, command result, or direct observation
 
-- Changes requiring significant architectural restructuring
-- Modifications spanning many files or modules
-- Changes that fundamentally alter the implementation approach
-- Trade-offs between conflicting requirements
+4. **Implementation summary**
+   - Provide a brief summary of what you implemented
 
-When reporting these issues, return to the orchestrator with a description of the problem and proposed options. The orchestrator will consult the user and resume you with the decision.
+**Do NOT hand off incomplete work**:
+
+- If any verification step fails, continue implementation until it passes
+- If any acceptance criterion is still `fail`, continue implementation until it passes
+- If satisfying verification or acceptance criteria would require significant architectural changes or requirement trade-offs, stop and report the problem to the orchestrator with proposed options
 
 ## Fix Loop
 
@@ -100,17 +94,17 @@ When resumed by the orchestrator after external review finds issues:
 1. Read the review file (`mail/{task-prefix}-review-{nn}.md`) as instructed by the orchestrator
 2. Fix all identified issues
 3. Re-run verification checks
-4. Perform self-review
+4. Re-check the task acceptance criteria and gather updated evidence
 5. Write a response file (`mail/{task-prefix}-review-response-{nn}.md`) addressing each finding: what was fixed, or why a finding was intentionally not addressed
 6. Return to the orchestrator
 
 ## Memory Recording
 
-When resumed by the orchestrator after external review passes, record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. You experienced the full cycle (implementation, verification, self-review, and review fix loops) and are best positioned to capture meaningful learnings.
+When resumed by the orchestrator after external review passes, record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. You experienced the full cycle (implementation, verification, pre-review handoff, and review fix loops) and are best positioned to capture meaningful learnings.
 
 - Read the review exchange files in `mail/` to also capture learnings from the review process
 - Write entries to `memory.md` following the template below
-- After writing, return to the orchestrator with: list of changed files, a brief implementation summary, and a proposed commit message (reflecting the final state including any changes made during fix loops)
+- After writing, return to the orchestrator with: list of changed files and a brief implementation summary
 
 1. **Create or update memory.md** in the task directory
 2. **Title**: Use `# {Plan Title} Implementation` as the document title (e.g., `# User Authentication Implementation`)
@@ -161,9 +155,10 @@ See [memory.md](references/memory.md) for example format.
 ## Important Rules
 
 - **All Forbidden Actions apply at all times** — See the Forbidden Actions section at the top of this document.
-- **Handle implementation, verification, and self-review** — then return results to the orchestrator
-- **When resumed for fix loops** — read review findings from `mail/`, fix issues, write response to `mail/`, then return
+- **Handle implementation, verification, and pre-review handoff** — then return results to the orchestrator
+- **Open delegated input files yourself** — do not assume the orchestrator has read or summarized packets, `memory.md`, review files, or agent instruction files for you
+- **When resumed for fix loops** — read review findings from `mail/`, fix issues, re-run verification, update acceptance-criteria evidence, write response to `mail/`, then return
 - **When resumed for memory recording** — read review exchange from `mail/`, write learnings to `memory.md`, then return
-- **Fix review findings autonomously** based on fix complexity
-- **Report to orchestrator** when fixes require significant architectural changes; do NOT fix autonomously
+- **Do NOT hand off a task unless verification is complete and every acceptance criterion is explicitly checked**
+- **Report to orchestrator** when satisfying verification or acceptance criteria requires significant architectural changes or requirement trade-offs
 - **Save temporary files under the plan directory** - Any temporary files created during investigation or implementation (e.g., debug logs, analysis outputs, scratch notes) must be saved under `.tasks/{YYYY-MM-DD}-{nn}-{slug}/tmp/`. Do NOT save them in the project root or other locations. Clean up when no longer needed.

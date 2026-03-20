@@ -5,22 +5,61 @@
 1. **Orchestrate, don't implement** - Delegate the full task lifecycle to implementation subagents, keeping your own context lean
 2. **Execute tasks by dependency** - Pick any task with no unresolved dependencies and execute it
 3. **Isolate subagents per task** - Each task gets fresh implementation and review subagents with no inherited parent context to maintain quality at scale
-4. **Complete each task fully** - Implementation → Verification → Self-review → External review as one unit per task
-5. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
+4. **Pass delegated files by path, not by content** - When a subagent must read a file, verify the file exists and pass its path; do NOT preload or summarize the file in the orchestrator
+5. **Complete each task fully** - Implementation → Verification → Pre-review handoff → External review as one unit per task
+6. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
 
 ## Workflow
 
 ### Phase 1: Task Planning
 
-Load the implementation plan and register tasks as todos:
+Load the implementation metadata from `plan.json`, ensure packets are current, and register tasks as todos:
 
-1. Load the implementation plan from `plan.json`
-2. Register all tasks as todos (all start as "pending")
-3. Ensure review is included after implementation phase
+1. Load the implementation metadata from `plan.json`
+2. Generate or refresh task packets (see Packet Preparation below)
+3. Register all tasks as todos (all start as "pending")
+4. Ensure review is included after implementation phase
 
 #### Loading the Plan
 
 Read `plan.json` from the `.tasks/{YYYY-MM-DD}-{nn}-{slug}/` directory.
+
+Do NOT read `plan.md` in the orchestrator. Treat `plan.json` as the orchestrator's source of truth for workflow metadata, task status, task titles, and the canonical relative path to the full plan document.
+
+Resolve the full plan path from the `plan` field in `plan.json`, then derive packet paths from each task title in `plan.json`:
+
+- `packets/common.md`
+- `packets/{TaskPrefix}-implement.md`
+- `packets/{TaskPrefix}-review.md`
+
+#### Packet Preparation
+
+Before executing any task, ensure the packet set under `packets/` is present and current.
+
+Launch a dedicated packet generation subagent using the lightest available worker that can reliably perform deterministic file splitting and file I/O. This step is mechanical and should not use a planning-oriented implementation worker. Do NOT inherit parent context — the subagent must start with a clean context.
+
+Before launching the packet generation subagent, verify only that these files exist and point to the expected locations. Do NOT open them or summarize them in the orchestrator.
+
+**Pass only the following paths and metadata:**
+
+- Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
+- Path to the canonical plan document resolved from the `plan` field in `plan.json`
+- Path to `plan.json`
+- Path to `packet-generator.md` in this skill directory
+- Instruct the subagent to read `packet-generator.md` and follow it exactly
+
+**Generation rules the subagent must enforce:**
+
+- Packet task sections copied from `plan.md` must remain verbatim
+- The shared common packet must copy everything before `## Tasks` verbatim
+- Each packet must include `Generated from plan.md at {timestamp}` in its header
+- If `plan.md` is newer than `common.md`, regenerate the common packet
+- If `plan.md` is newer than any packet, regenerate the affected packets
+- If any packet is missing, generate it before returning
+
+Store the packet-generator agent ID only as long as needed for this preparation step, then close it after successful completion.
+
+The packet-generator subagent must read the source files directly from the provided paths. If packet generation fails, fix the path or rerun generation; do NOT inspect packet contents in the orchestrator as a fallback.
 
 #### Register Todos
 
@@ -55,41 +94,51 @@ The orchestrator delegates implementation and review to subagents, coordinating 
    - Task has `status = "pending"`
    - All tasks in `dependsOn` have `status = "done"` (or `dependsOn` is empty)
 2. **Mark task as in progress**: Set `status: "in_progress"` in `plan.json`
-3. **Read task details**: Get task details from `plan.md` (description, file paths, acceptance criteria, etc.)
+3. **Compute task packet paths**: Derive the shared common packet path and the current task's packet paths from its task prefix
 4. **Delegate implementation**: Launch an implementation subagent (see Implementation below)
-5. **Request external review**: Launch a review subagent (see External Review below)
-6. **Fix loop**: If review finds issues, coordinate fixes between subagents (see External Review below)
-7. **Record learnings**: Resume the implementation subagent to write memory.md (see Memory Recording below)
-8. **Complete task**:
+5. **Validate the pre-review handoff**: Confirm the implementation subagent returned changed files, verification results, and acceptance-criteria status with evidence
+6. **Request external review**: Launch a review subagent (see External Review below)
+7. **Fix loop**: If review finds issues, coordinate fixes between subagents (see External Review below)
+8. **Record learnings**: Resume the implementation subagent to write memory.md (see Memory Recording below)
+9. **Complete task**:
    - Mark task as complete in `plan.json` (set `status: "done"`)
    - If `commitPolicy = "per-task"`: Git commit all changes (see Git Commit below)
    - If `commitPolicy = "end"` or `"none"`: Skip commit
    - Update todo status
-9. **Repeat**: Go to step 1 until all tasks are complete
+10. **Repeat**: Go to step 1 until all tasks are complete
 
 #### Implementation
 
 For each task, launch a new implementation subagent. Do NOT inherit parent context — the subagent must start with a clean context.
 
-**Context to provide:**
+Before launching the implementation subagent, verify only that these files exist and point to the expected task inputs. Do NOT open them or summarize them in the orchestrator.
+
+**Pass only the following paths and metadata:**
 
 - Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
 - Current task prefix and ID
+- Path to `packets/common.md`
+- Path to the task's implementation packet
 - Path to `implementer.md` in this skill directory
 - Instruct the subagent to read `implementer.md` and follow it
-- Instruct the subagent to also read:
-  - The full corresponding section in `plan.md` (Description, Constraints, Details, and Acceptance Criteria)
+- Instruct the subagent to open and read these files directly:
+  - `packets/common.md`
+  - The task's implementation packet
   - `memory.md` (if exists) for learnings from previous tasks
   - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
 
 **Instruct the subagent to perform:**
 
-1. Implement the task according to `plan.md`
+1. Implement the task according to the implementation packet
 2. Run verification checks (see Verification in implementer.md)
-3. Perform self-review (see Self-Review in implementer.md)
-4. Return: list of changed files, a brief implementation summary, and a proposed commit message
+3. Prepare the pre-review handoff required by implementer.md
+4. Return:
+   - list of changed files
+   - verification commands run and results
+   - explicit acceptance-criteria status with evidence for each criterion
+   - a brief implementation summary
 
-**Explicitly instruct**: "You are the implementation subagent. You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. Do NOT modify plan.json — progress tracking is my exclusive responsibility. After completing implementation, verification, and self-review, return your results to me immediately and stop."
+**Explicitly instruct**: "You are the implementation subagent. You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. Do NOT modify plan.json — progress tracking is my exclusive responsibility. Open the provided files yourself; I am passing file paths, not preloaded contents. After completing implementation, verification, and the pre-review handoff, return your results to me immediately and stop."
 
 **Store the agent ID** in session memory for potential fix loops later in the review phase.
 
@@ -99,7 +148,18 @@ For each task, launch a new implementation subagent. Do NOT inherit parent conte
 
 After the implementation subagent completes, launch a review subagent for external review.
 
-**IMPORTANT**: The implementation subagent must resolve all self-review issues BEFORE the orchestrator requests external review.
+**IMPORTANT**: The implementation subagent must complete verification and return a complete pre-review handoff BEFORE the orchestrator requests external review.
+
+##### Pre-Review Handoff Gate
+
+Before launching the review subagent, confirm the implementation subagent returned:
+
+- The list of changed files
+- Verification commands and results
+- Acceptance-criteria status for every criterion in the assigned task
+- Concrete evidence for every acceptance criterion
+
+If any of these are missing or incomplete, resume the implementation subagent and require a corrected handoff before external review begins.
 
 ##### Review Flow
 
@@ -108,16 +168,21 @@ After the implementation subagent completes, launch a review subagent for extern
 2. **Provide task context**
    - Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
    - Current task prefix and ID
+   - Path to `packets/common.md`
+   - Path to the task's review packet
    - Path to `reviewer.md` in this skill directory
    - The list of files changed in this task (received from the implementation subagent)
+   - The implementation subagent's verification summary
+   - The implementation subagent's acceptance-criteria status and evidence
    - Instruct the subagent to read `reviewer.md` and follow it
-   - Instruct the subagent to also read the **Description**, **Constraints**, and **Acceptance Criteria** sections for this task in `plan.md`
-   - **Explicitly instruct**: "You are the review subagent. Your ONLY role is code review — you are NOT the implementer. Do NOT fix code, do NOT implement anything, do NOT modify plan.json. Write your findings to mail/ files and return to me immediately."
+   - Instruct the subagent to open `packets/common.md`, the review packet, and any changed files directly from the provided paths
+   - Instruct the subagent to use `packets/common.md` plus the review packet as the primary task specification
+   - **Explicitly instruct**: "You are the review subagent. Your ONLY role is code review — you are NOT the implementer. Do NOT fix code, do NOT implement anything, do NOT modify plan.json. Open the provided files yourself; I am passing file paths, not preloaded contents. Write your findings to mail/ files and return to me immediately with an explicit status (`APPROVED` or `CHANGES_REQUESTED`) and the relevant mail file path."
 
 3. **If issues exist**:
-   - **Resume the implementation subagent**: instruct it to read the review file (`mail/{task-prefix}-review-{nn}.md`), fix issues, re-run verification, perform self-review, and write a response file (`mail/{task-prefix}-review-response-{nn}.md`)
-   - **Resume the review subagent**: instruct it to read the response file and re-review the codebase
-   - Repeat until the review file contains approval with no issues
+   - **Resume the implementation subagent**: pass only the review file path (`mail/{task-prefix}-review-{nn}.md`) and instruct it to read the file itself, fix issues, re-run verification, re-check the acceptance criteria, and write a response file (`mail/{task-prefix}-review-response-{nn}.md`)
+   - **Resume the review subagent**: pass only the response file path and instruct it to read the file itself before re-reviewing the codebase
+   - Repeat until the review subagent returns `APPROVED`
 
 4. **If no issues**:
    - External review passed
@@ -125,34 +190,44 @@ After the implementation subagent completes, launch a review subagent for extern
 
 #### Memory Recording
 
-After external review passes, **resume the implementation subagent** to record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. The implementation subagent experienced the full cycle (implementation, verification, self-review, and fix loops) and is best positioned to capture meaningful learnings.
+After external review passes, **resume the implementation subagent** to record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. The implementation subagent experienced the full cycle (implementation, verification, pre-review handoff, and fix loops) and is best positioned to capture meaningful learnings.
 
 Instruct the subagent to:
 - Read the review exchange files in `mail/` to also capture learnings from the review process
 - Write entries to `memory.md` following the template in implementer.md
-- Return a proposed commit message that reflects the final state of the implementation (including any changes made during fix loops)
 - Return to the orchestrator after writing
+
+When resuming the implementation subagent for memory recording, pass file paths only. Do NOT preload or summarize the review exchange in the orchestrator.
 
 #### Git Commit
 
 This section applies when a commit is needed — either per-task (when `commitPolicy = "per-task"`) or at the end of all tasks (when `commitPolicy = "end"`).
 
-After recording learnings, commit changes using the commit message proposed by the implementation subagent.
+After recording learnings, commit changes using a message derived mechanically from `plan.json`. Do NOT ask the implementation subagent to propose or revise the commit message, and do NOT rewrite the meaning based on review rounds or fix-loop context.
 
 1. **Check for commit message rules**
    - Look for project-specific commit conventions (e.g., `.gitmessage`, `CONTRIBUTING.md`, or repository rules)
-   - If rules exist, instruct the implementation subagent to follow them when proposing the commit message
+   - If rules exist, apply them when formatting the final commit message
 
-2. **Default to Conventional Commits**
-   - If no project-specific rules exist, the implementation subagent should propose a message following [Conventional Commits](https://www.conventionalcommits.org/) format:
+2. **Select the source title by commit unit**
+   - For per-task commits, use the current task's `tasks[].title`
+   - For end-of-phase commits, use the top-level `title` from `plan.json`
+
+3. **Normalize mechanically**
+   - When the source is `tasks[].title`, remove only the leading task prefix token for the current task (for example `X1`, `F1`) plus any immediately following separator punctuation and whitespace
+   - Do NOT paraphrase, summarize, or otherwise change the remaining wording
+
+4. **Default to Conventional Commits**
+   - If no project-specific rules exist, format the commit message using [Conventional Commits](https://www.conventionalcommits.org/) format:
      ```
      <type>(<scope>): <description>
      ```
+   - Use the normalized title as the `<description>` text
    - Common types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
    - Scope: affected module (e.g., `auth`, `api`, `database`)
    - Example: `feat(auth): add user authentication endpoint`
 
-3. **Stage and commit**
+5. **Stage and commit**
    - Stage all changes (if `plan.json` is not gitignored, include it as well)
    - Create commit with appropriate message
    - Do NOT push (user will decide when to push)
@@ -164,10 +239,6 @@ After recording learnings, commit changes using the commit message proposed by t
 | `per-task` | Yes — commit after each task completes | No — already committed per task |
 | `end` | No — skip per-task commits | Yes — commit all accumulated changes after all tasks complete (see Phase 3) |
 | `none` | No | No — user handles all commits manually |
-
-When `commitPolicy = "end"`, each implementation subagent still proposes a commit message. Collect these messages and use them to compose a single combined commit message at the end.
-
-When `commitPolicy = "none"`, implementation subagents still propose commit messages (for reference), but no commits are created. Also skip the agent instruction updates commit in Phase 3.
 
 **Note**: If `plan.json` is not gitignored, including it in the commit ensures consistency when resuming interrupted work. If it is gitignored, it will be automatically excluded and the commit will proceed normally.
 
@@ -187,10 +258,8 @@ Before reporting completion to user:
 
 When `commitPolicy = "end"`, no per-task commits were made during Phase 2. Commit all implementation changes here:
 
-1. Collect the commit messages proposed by each implementation subagent during Phase 2
-2. Compose a single commit message that summarizes all tasks:
-   - Use the plan title as the commit subject line
-   - List individual task summaries in the commit body
+1. Derive the commit subject from the top-level `title` in `plan.json`
+2. Format the commit using the same commit message rules from the Git Commit section
    - Follow the same commit message rules (project conventions or Conventional Commits)
 3. Stage and commit all changes
 4. Do NOT push (user will decide when to push)
@@ -284,16 +353,21 @@ After updating agent instruction files, launch a new review subagent:
    - Path to `reviewer.md` in this skill directory
    - The updated agent instruction files (paths)
    - Instruct the subagent to read `reviewer.md` and follow it, including the "Agent Instruction Review" section for additional criteria
-3. **If issues exist**: Fix all identified issues, write `mail/agents-review-response-{nn}.md`, then resume the subagent to re-review
+   - Instruct the subagent to return an explicit status (`APPROVED` or `CHANGES_REQUESTED`) and the relevant mail file path without expecting the orchestrator to read the mail body
+3. **If issues exist**: Fix the issues based on the review subagent's returned summary, write `mail/agents-review-response-{nn}.md`, then resume the subagent by passing only the response file path for re-review
 4. **If no issues**: Proceed to git commit
 
 ## Important Rules
 
 - **NEVER stop mid-workflow** - Complete ALL tasks from start to finish without interruption
 - **Orchestrator stays lean** - The orchestrator delegates implementation, review, and memory recording to subagents; it only handles task sequencing, git commits, and agent instruction file updates
+- **Do not read delegated input files in the orchestrator** - For packets, `memory.md`, review files, and agent instruction files that a subagent must consume, verify existence/path/freshness only and pass the path onward
+- **Do not read `plan.md` in the orchestrator** - Read only `plan.json`, resolve the plan path from its `plan` field, and pass that path to the packet-generation subagent when needed
+- **Do not read review mail bodies in the orchestrator** - Use subagent return statuses and passed file paths to control review loops; leave detailed mail contents to the relevant subagents
+- **Route packet generation to a very lightweight worker** - Packet generation is a narrow mechanical task; prefer the fastest reliable worker for file splitting rather than a planning-oriented implementation worker
 - **Respect workflow options** - Read `commitPolicy` and `updateAgentDocs` from `plan.json` at the start and follow them throughout execution
 - **Execute tasks by dependency** - Pick any task where all dependencies are complete; no strict execution order
-- **Complete each task fully before moving to next** - Implementation → Verification → Self-review → External review → Memory → Commit (if `per-task`) → Mark complete
+- **Complete each task fully before moving to next** - Implementation → Verification → Pre-review handoff → External review → Memory → Commit (if `per-task`) → Mark complete
 - **Launch new subagents per task** - Each task gets fresh implementation and review subagents to maintain quality regardless of plan size. Always launch without inheriting parent context.
 - **Reuse subagents within a task** - When fix→re-review loops occur within a single task, resume the same implementation and review subagents to preserve context
 - **Launch a new review subagent for Phase 3** - Agent instruction file review in Phase 3 also gets a fresh subagent
