@@ -278,7 +278,7 @@ After saving the plan, perform review to ensure quality before implementation.
 
 #### Review Criteria
 
-Both self-review and external review evaluate the plan against these criteria:
+External review evaluates the plan against these criteria:
 
 | Criterion | Description |
 |-----------|-------------|
@@ -292,56 +292,29 @@ Both self-review and external review evaluate the plan against these criteria:
 
 #### Review Process
 
-1. **Self-review the plan first** (basic quality check)
-   - Verify all tasks have clear acceptance criteria
-   - Check for missing dependencies or circular dependencies
-   - Ensure detail level is sufficient for implementation
-   - Confirm scope boundaries are clear
-
-2. **Launch review subagent** (external quality check)
+1. **Launch review subagent** (external quality check)
    - Request review of the plan document (`plan.md`)
    - Keep the agent ID in session memory for potential re-review
 
-3. **Process review findings**
+2. **Process review findings**
    - Identify all issues and suggestions from subagent response
 
-4. **If issues exist**:
+3. **If issues exist**:
    - Fix all identified issues in `plan.md` and `plan.json`
-   - Perform self-review again
    - Resume the same subagent using the stored agent ID
    - Repeat until external review passes
 
-5. **If no issues**:
+4. **If no issues**:
    - External review passed
    - Plan is ready for implementation
 
-### 7. Present Plan Summary
+### 7. Configure Workflow Options
 
-After the plan passes review, present a concise summary to the user **in the user's language**.
+After the plan passes review, ask the user to configure workflow options and save their choices to `plan.json`.
 
-The summary should enable the user to grasp the entire plan without reading `plan.md`. Include:
+This question phase happens **before** presenting the final plan summary. The summary in step 8 must reflect the user's confirmed workflow-option selections.
 
-- **Goal**: What the plan accomplishes (1-2 sentences)
-- **Scope**: What is included and excluded
-- **Design overview**: Key architectural decisions and technical approach
-- **Task list**: Each task with its ID, title, and a description covering:
-  - Why this task is needed (purpose and motivation)
-  - What it concretely does (key deliverables or changes)
-  - The user should be able to judge whether each task is necessary from this description alone
-- **Risks or open items**: Any notable risks identified during planning
-
-**Guidelines**:
-- Do NOT reproduce the full plan — summarize at a level where the user can make a go/no-go decision
-- Use the user's language, not the plan document's language
-- Keep technical accuracy — do not oversimplify to the point of losing important nuance
-- Omit execution-phase details (dependency order, implementation steps) — focus on *what* and *why*, not *how* or *when*
-- Do NOT use Mermaid diagrams — they cannot be rendered in chat. Use ASCII art instead when a visual representation aids understanding
-
-### 8. Configure Workflow Options
-
-After presenting the plan summary, ask the user to configure workflow options and save their choices to `plan.json`.
-
-#### 8.1 Commit Policy (`commitPolicy`)
+#### 7.1 Commit Policy (`commitPolicy`)
 
 Determine the recommended value based on task scale:
 
@@ -358,7 +331,7 @@ Present the recommendation with a brief rationale and let the user choose:
 
 Only recommend `per-task` or `end` based on task scale. `none` is not recommended but is available if the user explicitly wants full manual control.
 
-#### 8.2 Agent Docs Update Policy (`updateAgentDocs`)
+#### 7.2 Agent Docs Update Policy (`updateAgentDocs`)
 
 Ask the user to choose how agent instruction files (AGENTS.md / CLAUDE.md) should be updated after implementation. Recommend `suggest`:
 
@@ -367,7 +340,7 @@ Ask the user to choose how agent instruction files (AGENTS.md / CLAUDE.md) shoul
 | `auto` | Automatically update agent instruction files with learnings |
 | `suggest` | Write suggested updates to `.tasks/{dir}/agent-docs-suggestions.md` without modifying agent instruction files (recommended) |
 
-#### 8.3 Confirm and Save to plan.json
+#### 7.3 Confirm and Save to plan.json
 
 **The user must explicitly confirm their selections before proceeding.** Do NOT interpret a non-selection response (e.g., a question about the plan, a request for clarification) as acceptance of defaults. If the user responds with something other than a selection:
 
@@ -384,6 +357,77 @@ After confirmation, update `plan.json` with the chosen values:
   "updateAgentDocs": "<user's choice>"
 }
 ```
+
+### 8. Present Plan Summary
+
+After the workflow options are confirmed and saved, present a concise summary to the user **in the user's language**.
+
+The summary should enable the user to grasp the entire plan without reading `plan.md`.
+
+**Output Format**: Use the following Markdown template every time. Keep the heading labels and section order fixed. Fill in the placeholders with the actual plan content.
+
+````markdown
+## Plan Summary
+
+**Plan Path**
+
+[{.tasks/YYYY-MM-DD-nn-slug/plan.md}]({absolute path to plan.md})
+
+**Workflow Configuration**
+
+- `commitPolicy`: `{selected value}`
+- `updateAgentDocs`: `{selected value}`
+
+**Goal**
+
+{1-2 sentences describing what the plan accomplishes}
+
+**Scope**
+
+- Included: {what is included}
+- Excluded: {what is excluded}
+
+**Design Overview**
+
+{short explanation of the key architectural decisions and technical approach}
+
+**Tasks**
+
+1. `{Task ID}` **{Task Title}**
+   {translated task Description from plan.md, shown faithfully without summarizing}
+
+2. `{Task ID}` **{Task Title}**
+   {translated task Description from plan.md, shown faithfully without summarizing}
+
+{repeat for all tasks in the plan}
+
+**Risks / Open Items**
+
+- {risk or open item}
+- {risk or open item}
+````
+
+Requirements for filling this template:
+
+- **Plan Path**: Show `plan.md` at the top of the summary as a clickable Markdown link. Use the relative path as the link label and the absolute file path as the link target
+- **Workflow Configuration**: Show the user's confirmed `commitPolicy` and `updateAgentDocs` selections exactly as saved in `plan.json`
+- **Goal**: What the plan accomplishes (1-2 sentences)
+- **Scope**: State both included and excluded scope
+- **Design Overview**: Summarize key architectural decisions and technical approach
+- **Tasks**: Include every task with its ID, title, and the corresponding `Description` content from `plan.md`
+  - Translate the `Description` into the user's language
+  - Do NOT summarize, compress, or add interpretation beyond minor wording adjustments needed for natural translation
+  - Do NOT mix in content from `Constraints`, `Details`, or `Acceptance Criteria`
+- **Risks / Open Items**: List any notable risks identified during planning; if none, write `- None`
+
+**Guidelines**:
+- Do NOT reproduce the full plan — summarize the non-task sections at a level where the user can make a go/no-go decision, but show each task `Description` faithfully
+- Use the user's language, not the plan document's language
+- Keep technical accuracy — do not oversimplify to the point of losing important nuance
+- Omit execution-phase details (dependency order, implementation steps) — focus on *what* and *why*, not *how* or *when*
+- Treat task `Description` as the source of truth for task body text in the summary
+- Do NOT use Mermaid diagrams — they cannot be rendered in chat. Use ASCII art instead when a visual representation aids understanding
+- Do NOT invent optional sections or reorder the template unless the user explicitly requests a different format
 
 ## Guidelines
 
