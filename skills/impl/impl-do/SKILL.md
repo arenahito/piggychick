@@ -2,7 +2,11 @@
 name: impl-do
 description: |
   Workflow for executing implementation tasks using an orchestrator pattern.
-  Use this skill when you need to:
+  Use this skill ONLY when either:
+  (1) there is an existing implementation plan prepared by `impl-plan`, or
+  (2) the user explicitly names or requests the `impl-do` skill.
+  Do NOT use this skill automatically just because a task has multiple steps, would benefit from orchestration, or already has some other kind of plan.
+  When it is active, use it to:
   (1) Execute a prepared implementation plan
   (2) Orchestrate tasks by delegating implementation and review to subagents
   (3) For each task: implement → verify → pre-review handoff → external review (all via subagents)
@@ -12,6 +16,15 @@ metadata:
 ---
 
 # Implementation Workflow
+
+## Activation
+
+Use this skill only when one of the following is true:
+
+- An `impl-plan` run already produced the task directory and plan artifacts that this workflow will execute
+- The user explicitly asks to use `impl-do`
+
+Do not activate it implicitly for every implementation request, even when the work is large or a plan exists in some other format.
 
 ## Task Directory
 

@@ -1,8 +1,9 @@
 ---
 name: impl-plan
 description: |
-  Skill for planning and designing coding tasks before implementation. Use this skill ONLY when the user explicitly asks to "plan", "design", "create a plan", or "think before coding".
-  Do NOT use this skill when the user asks to "implement", "build", "create", "fix", or any other action-oriented instruction — even if the task is complex or spans multiple files. The decision to plan before implementing belongs to the user, not the agent.
+  Skill for planning and designing coding tasks before implementation.
+  Use this skill ONLY when the user explicitly names or requests the `impl-plan` skill.
+  Do NOT use this skill automatically just because the user is asking for a plan, design, or a complex task breakdown. The decision to use `impl-plan` belongs to the user, not the agent.
 metadata:
   short-description: Create and review implementation plans before coding
 ---
@@ -10,6 +11,12 @@ metadata:
 # Implementation Plan Skill
 
 Create implementation plans for software development tasks with sufficient detail for execution.
+
+## Activation
+
+Use this skill only when the user explicitly asks to use `impl-plan`.
+
+Do not activate it implicitly for generic planning requests such as "plan this", "design this", or "think before coding". Those requests may still deserve planning, but choosing this specific skill is the user's decision.
 
 ## Workflow
 
