@@ -196,7 +196,6 @@ Also note which implementation-agent candidate you used. In `shared` mode, it mu
   - Do NOT pass `packets/common.md`
   - Instruct the subagent to open and read these files directly:
     - The task's implementation packet
-    - `memory.md` (if exists) for learnings from previous tasks
     - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) only if they need to be re-opened for the current task
 
 **Instruct the subagent to perform:**
