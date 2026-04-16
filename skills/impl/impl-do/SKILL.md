@@ -10,9 +10,9 @@ description: |
   (1) Execute a prepared implementation plan
   (2) Orchestrate tasks by delegating implementation and review to subagents
   (3) For each task: implement → verify → pre-review handoff → external review (all via subagents)
-  This skill enforces: (a) dependency-based task execution, (b) per-task subagent isolation, (c) per-task review cycle.
+  This skill enforces: (a) dependency-based task execution, (b) per-task review cycle.
 metadata:
-  short-description: Execute implementation plans with orchestrator pattern and per-task subagent isolation
+  short-description: Execute implementation plans with orchestrator pattern
 ---
 
 # Implementation Workflow

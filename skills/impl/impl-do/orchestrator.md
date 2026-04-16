@@ -4,10 +4,12 @@
 
 1. **Orchestrate, don't implement** - Delegate the full task lifecycle to implementation subagents, keeping your own context lean
 2. **Execute tasks by dependency** - Pick any task with no unresolved dependencies and execute it
-3. **Isolate subagents per task** - Each task gets fresh implementation and review subagents with no inherited parent context to maintain quality at scale
-4. **Pass delegated files by path, not by content** - When a subagent must read a file, verify the file exists and pass its path; do NOT preload or summarize the file in the orchestrator
-5. **Complete each task fully** - Implementation → Verification → Pre-review handoff → External review as one unit per task
-6. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
+3. **Confirm implementation-agent mode before execution** - Before any task execution, ask the user whether implementation agents should run in `fresh` mode (new subagent per task) or `shared` mode (reuse one implementation subagent across tasks). Do NOT assume a default.
+4. **Confirm implementation-agent candidate only for shared mode** - If the user selects `shared`, present the implementation-subagent candidates available in the current environment and ask the user to choose one. In `fresh` mode, keep implementation-agent selection flexible per task. Do NOT hardcode a specific agent name in this skill.
+5. **Keep review independent per task** - Each task gets a fresh review subagent with no inherited parent context
+6. **Pass delegated files by path, not by content** - When a subagent must read a file, verify the file exists and pass its path; do NOT preload or summarize the file in the orchestrator
+7. **Complete each task fully** - Implementation → Verification → Pre-review handoff → External review as one unit per task
+8. **Complete all tasks without stopping** - NEVER stop mid-workflow; continue until all tasks are finished
 
 ## Workflow
 
@@ -18,7 +20,9 @@ Load the implementation metadata from `plan.json`, ensure packets are current, a
 1. Load the implementation metadata from `plan.json`
 2. Generate or refresh task packets (see Packet Preparation below)
 3. Register all tasks as todos (all start as "pending")
-4. Ensure review is included after implementation phase
+4. Confirm the implementation-agent mode with the user (see Implementation Agent Mode below)
+5. If the user selected `shared`, confirm the implementation-agent candidate with the user (see Implementation Agent Candidate below)
+6. Ensure review is included after implementation phase
 
 #### Loading the Plan
 
@@ -84,6 +88,39 @@ Todo 3: id="F1", content="F1: Build login form"
 
 **WRONG**: Creating a single todo like "Implement B1, B2, and F1" that combines multiple tasks
 
+#### Implementation Agent Mode
+
+Before Phase 2 begins, ask the user which implementation-agent mode to use for this run:
+
+- `fresh`: launch a new implementation subagent for each task to keep task-level implementation context clean
+- `shared`: launch one implementation subagent once, then resume the same subagent across tasks to reduce repeated startup cost
+
+Do NOT choose a default yourself. Do NOT begin Phase 2 until the user explicitly selects `fresh` or `shared`.
+
+After the user answers:
+
+- Store the selected mode in session memory as `implementationAgentMode`
+- Treat that value as fixed for the rest of the run unless the user explicitly changes direction
+- Apply the selected mode consistently for task execution, fix loops, and memory recording
+
+#### Implementation Agent Candidate
+
+Only if `implementationAgentMode = "shared"`, present the implementation-subagent candidates available in the current environment and ask the user to choose one for this run.
+
+Requirements:
+
+- Do NOT hardcode any specific implementation-agent name in this skill
+- Do NOT silently auto-select a candidate in `shared` mode
+- If only one candidate is available in `shared` mode, still ask the user to confirm it explicitly
+- Present concise trade-offs for the available candidates based on the current environment's metadata or tool descriptions
+- In `fresh` mode, do NOT ask the user to lock one implementation-agent candidate for the whole run
+
+After the user answers:
+
+- Store the selected candidate in session memory as `implementationAgentCandidate`
+- Treat that value as fixed for the rest of the run unless the user explicitly changes direction
+- Use that selected candidate for all implementation-subagent launches in this run while `implementationAgentMode = "shared"`
+
 ### Phase 2: Task Execution
 
 The orchestrator delegates implementation and review to subagents, coordinating the workflow while keeping its own context lean.
@@ -95,7 +132,7 @@ The orchestrator delegates implementation and review to subagents, coordinating 
    - All tasks in `dependsOn` have `status = "done"` (or `dependsOn` is empty)
 2. **Mark task as in progress**: Set `status: "in_progress"` in `plan.json`
 3. **Compute task packet paths**: Derive the shared common packet path and the current task's packet paths from its task prefix
-4. **Delegate implementation**: Launch an implementation subagent (see Implementation below)
+4. **Delegate implementation**: Use the confirmed implementation-agent mode, and when in `shared` mode, the confirmed implementation-agent candidate, to launch or resume the implementation subagent (see Implementation below)
 5. **Validate the pre-review handoff**: Confirm the implementation subagent returned changed files, verification results, and acceptance-criteria status with evidence
 6. **Request external review**: Launch a review subagent (see External Review below)
 7. **Fix loop**: If review finds issues, coordinate fixes between subagents (see External Review below)
@@ -109,23 +146,58 @@ The orchestrator delegates implementation and review to subagents, coordinating 
 
 #### Implementation
 
-For each task, launch a new implementation subagent. Do NOT inherit parent context — the subagent must start with a clean context.
+Use the implementation-agent mode selected in Phase 1. If the mode is `shared`, also use the implementation-agent candidate selected in Phase 1.
 
-Before launching the implementation subagent, verify only that these files exist and point to the expected task inputs. Do NOT open them or summarize them in the orchestrator.
+**Mode definitions:**
+
+- `fresh`: Launch a new implementation subagent for each task. Do NOT inherit parent context. Use that task-specific subagent only for that task's implementation, fix loops, and memory recording. Choose the implementation-agent candidate per task based on the task's needs and the current environment; do not require one run-wide candidate choice.
+- `shared`: Reuse one implementation subagent across tasks. Launch it once without inheriting parent context, then resume the same subagent for subsequent tasks, fix loops, and memory recording. While `shared` mode is active, do NOT launch additional implementation subagents for normal task execution. Use the user-selected shared-mode implementation-agent candidate for that subagent. Read `packets/common.md` only on the shared subagent's initial launch; do NOT re-read it on later task resumes in the same run.
+
+Before launching or resuming the implementation subagent, verify only that these files exist and point to the expected task inputs. Do NOT open them or summarize them in the orchestrator.
+
+In `shared` mode, launch or resume the implementation subagent using the user-selected implementation-agent candidate for this run. Do NOT substitute a different candidate unless the user explicitly changes direction.
+
+**How to choose the implementation subagent action:**
+
+- If `implementationAgentMode = "fresh"`:
+  - Launch a new implementation subagent for the current task
+  - Choose the implementation-agent candidate for that task according to the task's needs and the current environment
+  - Store that task's implementation agent ID in session memory for fix loops and memory recording within the same task
+- If `implementationAgentMode = "shared"`:
+  - If no shared implementation subagent exists yet, launch one, store its agent ID in session memory, and include `packets/common.md` in the delegated inputs
+  - If a shared implementation subagent already exists, resume that same subagent for the current task and do NOT ask it to re-read `packets/common.md`
+  - Do NOT launch a second implementation subagent for another task unless the user explicitly changes the mode or the shared subagent is no longer usable
+
+Whenever you delegate implementation, explicitly note whether you **launched** or **resumed** the implementation subagent so the execution path is auditable.
+Also note which implementation-agent candidate you used. In `shared` mode, it must match the user-selected shared-mode candidate.
 
 **Pass only the following paths and metadata:**
 
 - Task directory path (`.tasks/{YYYY-MM-DD}-{nn}-{slug}/`)
 - Current task prefix and ID
-- Path to `packets/common.md`
 - Path to the task's implementation packet
 - Path to `implementer.md` in this skill directory
 - Instruct the subagent to read `implementer.md` and follow it
-- Instruct the subagent to open and read these files directly:
-  - `packets/common.md`
-  - The task's implementation packet
-  - `memory.md` (if exists) for learnings from previous tasks
-  - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
+- If `implementationAgentMode = "fresh"`:
+  - Pass the path to `packets/common.md`
+  - Instruct the subagent to open and read these files directly:
+    - `packets/common.md`
+    - The task's implementation packet
+    - `memory.md` (if exists) for learnings from previous tasks
+    - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
+- If `implementationAgentMode = "shared"` and this is the shared subagent's first launch:
+  - Pass the path to `packets/common.md`
+  - Instruct the subagent to open and read these files directly:
+    - `packets/common.md`
+    - The task's implementation packet
+    - `memory.md` (if exists) for learnings from previous tasks
+    - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) for codebase conventions
+- If `implementationAgentMode = "shared"` and this is a later task resume:
+  - Do NOT pass `packets/common.md`
+  - Instruct the subagent to open and read these files directly:
+    - The task's implementation packet
+    - `memory.md` (if exists) for learnings from previous tasks
+    - Agent instruction files (`AGENTS.md` / `CLAUDE.md`) only if they need to be re-opened for the current task
 
 **Instruct the subagent to perform:**
 
@@ -138,9 +210,10 @@ Before launching the implementation subagent, verify only that these files exist
    - explicit acceptance-criteria status with evidence for each criterion
    - a brief implementation summary
 
-**Explicitly instruct**: "You are the implementation subagent. You are assigned ONLY task {prefix}. Do NOT work on any other task in the plan. Do NOT make git commits — I (the orchestrator) handle all git operations. Do NOT modify plan.json — progress tracking is my exclusive responsibility. Open the provided files yourself; I am passing file paths, not preloaded contents. After completing implementation, verification, and the pre-review handoff, return your results to me immediately and stop."
+**Explicitly instruct**: "You are the implementation subagent. You are assigned ONLY task {prefix} right now. Do NOT work on any other task unless I explicitly resume you with a new assignment. Do NOT make git commits — I (the orchestrator) handle all git operations. Do NOT modify plan.json — progress tracking is my exclusive responsibility. Open the provided files yourself; I am passing file paths, not preloaded contents. If I do not pass `packets/common.md`, continue using the common packet context you already loaded earlier in this run. After completing implementation, verification, and the pre-review handoff, return your results to me immediately and stop."
 
-**Store the agent ID** in session memory for potential fix loops later in the review phase.
+**Store the agent ID** according to the selected mode so it can be reused for fix loops later in the review phase.
+If `implementationAgentMode = "shared"`, the stored shared implementation subagent must correspond to the selected `implementationAgentCandidate`.
 
 **Handling complex issues**: If the subagent reports issues requiring significant architectural changes, consult the user and resume the subagent with the decision.
 
@@ -190,14 +263,19 @@ If any of these are missing or incomplete, resume the implementation subagent an
 
 #### Memory Recording
 
-After external review passes, **resume the implementation subagent** to record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. The implementation subagent experienced the full cycle (implementation, verification, pre-review handoff, and fix loops) and is best positioned to capture meaningful learnings.
+After external review passes, use the implementation subagent selected by `implementationAgentMode` to record learnings in `.tasks/{YYYY-MM-DD}-{nn}-{slug}/memory.md`. The implementation subagent experienced the full cycle (implementation, verification, pre-review handoff, and fix loops) and is best positioned to capture meaningful learnings.
 
 Instruct the subagent to:
 - Read the review exchange files in `mail/` to also capture learnings from the review process
 - Write entries to `memory.md` following the template in implementer.md
 - Return to the orchestrator after writing
 
-When resuming the implementation subagent for memory recording, pass file paths only. Do NOT preload or summarize the review exchange in the orchestrator.
+When delegating memory recording:
+
+- In `fresh` mode, resume the current task's implementation subagent
+- In `shared` mode, resume the shared implementation subagent
+
+Pass file paths only. Do NOT preload or summarize the review exchange in the orchestrator.
 
 #### Git Commit
 
@@ -252,7 +330,8 @@ Before reporting completion to user:
 4. If `commitPolicy = "end"`: Commit all accumulated implementation changes (see Batch Commit below)
 5. Update agent instruction files with learnings — behavior depends on `updateAgentDocs` (see below)
 6. Git commit the agent instruction updates (if `updateAgentDocs = "auto"` and `commitPolicy != "none"`, use commit message: `docs: update agent instructions with learnings from {slug}`)
-7. Provide summary of completed work
+7. If `implementationAgentMode = "shared"` and the shared implementation subagent is still running, close it after all workflow steps are complete
+8. Provide summary of completed work
 
 #### Batch Commit (`commitPolicy = "end"`)
 
@@ -361,6 +440,8 @@ After updating agent instruction files, launch a new review subagent:
 
 - **NEVER stop mid-workflow** - Complete ALL tasks from start to finish without interruption
 - **Orchestrator stays lean** - The orchestrator delegates implementation, review, and memory recording to subagents; it only handles task sequencing, git commits, and agent instruction file updates
+- **No default implementation-agent mode** - Before Phase 2, ask the user to choose `fresh` or `shared`. Do NOT assume or infer a default.
+- **No default shared-mode implementation-agent candidate** - If the user selects `shared`, present the available implementation-subagent candidates and ask the user to choose one. Do NOT assume or infer a default.
 - **Do not read delegated input files in the orchestrator** - For packets, `memory.md`, review files, and agent instruction files that a subagent must consume, verify existence/path/freshness only and pass the path onward
 - **Do not read `plan.md` in the orchestrator** - Read only `plan.json`, resolve the plan path from its `plan` field, and pass that path to the packet-generation subagent when needed
 - **Do not read review mail bodies in the orchestrator** - Use subagent return statuses and passed file paths to control review loops; leave detailed mail contents to the relevant subagents
@@ -368,9 +449,10 @@ After updating agent instruction files, launch a new review subagent:
 - **Respect workflow options** - Read `commitPolicy` and `updateAgentDocs` from `plan.json` at the start and follow them throughout execution
 - **Execute tasks by dependency** - Pick any task where all dependencies are complete; no strict execution order
 - **Complete each task fully before moving to next** - Implementation → Verification → Pre-review handoff → External review → Memory → Commit (if `per-task`) → Mark complete
-- **Launch new subagents per task** - Each task gets fresh implementation and review subagents to maintain quality regardless of plan size. Always launch without inheriting parent context.
+- **Respect the selected shared-mode implementation-agent candidate exactly** - In `shared` mode, use the candidate chosen by the user for every implementation-subagent launch in this run unless the user explicitly changes direction.
+- **Respect the selected implementation-agent mode exactly** - In `fresh` mode, launch a new implementation subagent per task and do NOT reuse it across tasks. In `shared` mode, reuse the same implementation subagent across tasks and do NOT launch extra implementation subagents for normal task execution.
 - **Reuse subagents within a task** - When fix→re-review loops occur within a single task, resume the same implementation and review subagents to preserve context
-- **Launch a new review subagent for Phase 3** - Agent instruction file review in Phase 3 also gets a fresh subagent
+- **Keep reviews fresh per task** - Launch a new review subagent for every task review and for Phase 3 agent-instruction review
 - **Communicate through `mail/` files** - Subagents exchange review findings and responses via files in `mail/` to prevent information loss through orchestrator relay
 - **Implementation subagent writes memory.md** - After external review passes, resume the implementation subagent to record learnings (it has the richest context from the full implementation and review cycle)
 - **Update appropriate agent instruction files** - AGENTS.md / CLAUDE.md can exist in root and subdirectories; determine update targets per Step 1 rules and match learnings to the closest relevant file
