@@ -28,7 +28,7 @@ After your initial return, the orchestrator may resume you for:
 
 ## Review Scope
 
-External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementation subagent. Focus on issues the implementer is likely to miss due to their own bias.
+External review is a **code review**, not re-verification. Static analysis, tests, builds, and acceptance criteria have already been verified by the implementer (either the parent orchestrator or an implementation subagent). Focus on issues the implementer is likely to miss due to their own bias.
 
 **IMPORTANT**: The orchestrator may pass packet paths and response-file paths without preloading their contents. Open the shared common packet, the review packet, and any response files yourself. Use the shared common packet and the review packet as your primary task specification. They are generated from `plan.md`, and the review packet intentionally excludes implementation-specific details so you can review from a fresh perspective. Do NOT read the implementation packet unless the orchestrator explicitly instructs you to.
 
@@ -40,7 +40,7 @@ External review is a **code review**, not re-verification. Static analysis, test
 - Security and performance concerns (structural issues, not micro-optimizations)
 - Consistency with existing codebase conventions and patterns
 
-**Out of scope** (already verified by the implementation subagent):
+**Out of scope** (already verified by the implementer):
 
 - Lint / static analysis results
 - Type checking
@@ -105,5 +105,5 @@ When returning from agent instruction review, use the same response contract:
 - **Do NOT bypass the review packet** — It is the review-facing source of truth unless the orchestrator explicitly asks for more context.
 - **Open delegated input files yourself** — do not assume the orchestrator has read or summarized packets, changed files, or review-response files before handing them to you
 - **Return machine-readable review status** — the orchestrator should be able to drive the loop without reading mail bodies
-- **Do NOT re-run mechanical checks** — Lint, type-check, tests, and builds have already been verified by the implementation subagent.
+- **Do NOT re-run mechanical checks** — Lint, type-check, tests, and builds have already been verified by the implementer.
 - **Write findings to `mail/` files** — Use the naming convention specified above.

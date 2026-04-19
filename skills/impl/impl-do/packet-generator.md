@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Generate deterministic shared/task packets so the orchestrator, implementation subagent, and review subagent do not need to read the full `plan.md`.
+Generate deterministic shared/task packets so the parent implementer, implementation subagent, and review subagent do not need to read the full `plan.md`.
 
 ## Forbidden Actions
 

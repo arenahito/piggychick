@@ -8,8 +8,8 @@ description: |
   Do NOT use this skill automatically just because a task has multiple steps, would benefit from orchestration, or already has some other kind of plan.
   When it is active, use it to:
   (1) Execute a prepared implementation plan
-  (2) Orchestrate tasks by delegating implementation and review to subagents
-  (3) For each task: implement → verify → pre-review handoff → external review (all via subagents)
+  (2) Orchestrate tasks in either delegated implementation mode or parent implementation mode
+  (3) For each task: implement → verify → pre-review handoff → external review
   This skill enforces: (a) dependency-based task execution, (b) per-task review cycle.
 metadata:
   short-description: Execute implementation plans with orchestrator pattern
